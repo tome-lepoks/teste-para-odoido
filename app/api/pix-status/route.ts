@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     console.log(`[UNIPAY] Checking status for transaction:`, transactionId)
 
     const url = `https://api.unipaybr.com/api/transactions/${transactionId}`
-    const auth = 'Basic ' + Buffer.from(UNIPAY_SECRET_KEY + ':x').toString('base64')
+    const auth = 'Basic ' + Buffer.from('x:' + UNIPAY_SECRET_KEY).toString('base64')
 
     const response = await fetch(url, {
       method: 'GET',

@@ -525,7 +525,8 @@ export default function Home() {
                             "Content-Type": "application/json",
                           },
                           body: JSON.stringify({
-                            transactionId: pixData.transactionId
+                            transactionId: pixData.transactionId,
+                            provider: pixData.provider
                           }),
                         })
                         const result = await response.json()

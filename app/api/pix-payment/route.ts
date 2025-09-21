@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-const UNIPAY_PUBLIC_KEY = "pk_b43b6992da8621f3940d675ed1a5f954091fb37e"
 const UNIPAY_SECRET_KEY = "sk_a0aab6155b590896932e3c92f49df02c59108c74"
 
 export async function POST(request: NextRequest) {
@@ -43,8 +42,8 @@ export async function POST(request: NextRequest) {
 
     const url = 'https://api.unipaybr.com/api'
     
-    // UNIPAY usa Basic Auth com SECRET_KEY:x
-    const auth = 'Basic ' + Buffer.from(UNIPAY_SECRET_KEY + ':x').toString('base64')
+    // UNIPAY usa Basic Auth com x:SECRET_KEY convertido para base64
+    const auth = 'Basic ' + Buffer.from('x:' + UNIPAY_SECRET_KEY).toString('base64')
     
     console.log("[UNIPAY] Auth header:", auth.substring(0, 30) + "...")
 
@@ -60,12 +59,13 @@ export async function POST(request: NextRequest) {
           type: "CPF"
         },
         phone: phone,
+        externalRef: `cliente-${cpfLimpo}`,
         address: {
-          street: "Rua Exemplo",
+          street: "Avenida Paulista",
           streetNumber: "123",
-          complement: "Apto 1",
-          zipCode: "12345678",
-          neighborhood: "Centro",
+          complement: "Apto 101",
+          zipCode: "01000000",
+          neighborhood: "Bela Vista",
           city: "São Paulo",
           state: "SP",
           country: "BR"
@@ -74,11 +74,11 @@ export async function POST(request: NextRequest) {
       shipping: {
         fee: 0,
         address: {
-          street: "Rua Exemplo",
+          street: "Avenida Paulista",
           streetNumber: "123",
-          complement: "Apto 1",
-          zipCode: "12345678",
-          neighborhood: "Centro",
+          complement: "Apto 101",
+          zipCode: "01000000",
+          neighborhood: "Bela Vista",
           city: "São Paulo",
           state: "SP",
           country: "BR"
@@ -89,18 +89,20 @@ export async function POST(request: NextRequest) {
         unitPrice: amountInCents,
         quantity: 1,
         tangible: true,
-        externalRef: `PRODUTO005_${cpfLimpo}`
+        externalRef: `produto-${cpfLimpo}`
       }],
       pix: {
         expiresInDays: 1
       },
+      postbackUrl: "https://meusite.com/webhook/pagamentos",
       metadata: JSON.stringify({
         cpf: cpf,
         phone: phone,
         source: 'Organico-x1',
         timestamp: new Date().toISOString()
       }),
-      traceable: true
+      traceable: true,
+      ip: "192.168.1.1"
     }
 
     console.log("[UNIPAY] Payload:", payload)

@@ -2,14 +2,26 @@
 
 ## Visão Geral
 
-Sistema de pagamento PIX integrado exclusivamente com a UNIPAY.
+Sistema de pagamento PIX integrado exclusivamente com a UNIPAY usando a documentação oficial.
 
 ## Configuração
 
 ### Credenciais
 - **URL:** `https://api.unipaybr.com/api`
-- **Public Key:** `pk_b43b6992da8621f3940d675ed1a5f954091fb37e`
 - **Secret Key:** `sk_a0aab6155b590896932e3c92f49df02c59108c74`
+- **Autenticação:** Basic Auth com formato `x:SECRET_KEY` convertido para base64
+
+## Autenticação
+
+A UNIPAY usa Basic Authentication com o formato específico:
+```
+Authorization: Basic <base64(x:SECRET_KEY)>
+```
+
+Exemplo:
+- Secret Key: `sk_a0aab6155b590896932e3c92f49df02c59108c74`
+- Formato: `x:sk_a0aab6155b590896932e3c92f49df02c59108c74`
+- Base64: `eDpza19hMGFhYjYxNTViNTkwODk2OTMyZTNjOTJmNDlkZjAyYzU5MTA4Yzc0`
 
 ## Endpoints
 
@@ -97,11 +109,63 @@ app/api/
 └── pix-status/            # Consultar status da transação
 ```
 
-## Autenticação
+## Payload da UNIPAY
 
-A UNIPAY usa Basic Authentication com o formato:
-```
-Authorization: Basic <base64(SECRET_KEY:x)>
+O sistema envia o seguinte payload para a UNIPAY:
+
+```json
+{
+  "amount": 26323,
+  "currency": "BRL",
+  "paymentMethod": "PIX",
+  "customer": {
+    "name": "João da Silva",
+    "email": "12345678900@temp.com",
+    "document": {
+      "number": "123.456.789-00",
+      "type": "CPF"
+    },
+    "phone": "(11) 99999-9999",
+    "externalRef": "cliente-12345678900",
+    "address": {
+      "street": "Avenida Paulista",
+      "streetNumber": "123",
+      "complement": "Apto 101",
+      "zipCode": "01000000",
+      "neighborhood": "Bela Vista",
+      "city": "São Paulo",
+      "state": "SP",
+      "country": "BR"
+    }
+  },
+  "shipping": {
+    "fee": 0,
+    "address": {
+      "street": "Avenida Paulista",
+      "streetNumber": "123",
+      "complement": "Apto 101",
+      "zipCode": "01000000",
+      "neighborhood": "Bela Vista",
+      "city": "São Paulo",
+      "state": "SP",
+      "country": "BR"
+    }
+  },
+  "items": [{
+    "title": "Produto005",
+    "unitPrice": 26323,
+    "quantity": 1,
+    "tangible": true,
+    "externalRef": "produto-12345678900"
+  }],
+  "pix": {
+    "expiresInDays": 1
+  },
+  "postbackUrl": "https://meusite.com/webhook/pagamentos",
+  "metadata": "{\"cpf\":\"123.456.789-00\",\"phone\":\"(11) 99999-9999\",\"source\":\"Organico-x1\",\"timestamp\":\"2024-01-01T12:00:00.000Z\"}",
+  "traceable": true,
+  "ip": "192.168.1.1"
+}
 ```
 
 ## Logs
@@ -109,6 +173,7 @@ Authorization: Basic <base64(SECRET_KEY:x)>
 O sistema gera logs para debugging:
 ```
 [UNIPAY] Creating PIX payment: { cpf: "123.456.789-00", name: "João da Silva", ... }
+[UNIPAY] Auth header: Basic eDpza19hMGFhYjYxNTViNTkwODk2...
 [UNIPAY] Response status: 200
 [UNIPAY] PIX transaction created successfully: { id: "abc123", ... }
 ```
@@ -147,3 +212,10 @@ const statusResponse = await fetch('/api/pix-status', {
 
 const status = await statusResponse.json();
 ```
+
+## Diferenças da Implementação Anterior
+
+1. **URL Correta:** `https://api.unipaybr.com/api` (não mais fastsoftbrasil)
+2. **Autenticação Correta:** `x:SECRET_KEY` convertido para base64
+3. **Payload Completo:** Seguindo a documentação oficial da UNIPAY
+4. **Campos Adicionais:** `externalRef`, `postbackUrl`, `traceable`, `ip`
