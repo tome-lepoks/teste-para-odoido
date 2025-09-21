@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     const url = `${UNIPAY_API_URL}/user/transactions`
     
-    // UNIPAY usa Basic Auth com x:SECRET_KEY
+    // UNIPAY usa Basic Auth com x:SECRET_KEY (conforme documentação)
     const auth = 'Basic ' + Buffer.from(`x:${UNIPAY_SECRET_KEY}`).toString('base64')
     
     console.log("[v0] UNIPAY Auth header:", auth.substring(0, 30) + "...")
