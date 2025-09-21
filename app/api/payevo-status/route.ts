@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
 const UNIPAY_SECRET_KEY = "sk_a0aab6155b590896932e3c92f49df02c59108c74"
-const UNIPAY_API_URL = "https://api.unipaybr.com/api"
+const UNIPAY_API_URL = "https://api.fastsoftbrasil.com/api"
 
 export async function GET(request: NextRequest) {
   try {

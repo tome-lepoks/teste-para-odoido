@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
 const UNIPAY_SECRET_KEY = "sk_a0aab6155b590896932e3c92f49df02c59108c74"
-const UNIPAY_API_URL = "https://api.unipaybr.com/api"
+const UNIPAY_API_URL = "https://api.fastsoftbrasil.com/api"
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,8 +34,24 @@ export async function POST(request: NextRequest) {
     // Limpar CPF (remover formatação)
     const cpfLimpo = cpf.replace(/\D/g, '')
     
+    // Validar CPF
+    if (cpfLimpo.length !== 11) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "CPF deve ter 11 dígitos" 
+      }, { status: 400 })
+    }
+    
     // Limpar telefone (remover formatação)
     const phoneLimpo = phone.replace(/\D/g, '')
+    
+    // Validar telefone
+    if (phoneLimpo.length < 10) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "Telefone deve ter pelo menos 10 dígitos" 
+      }, { status: 400 })
+    }
     
     // Usar o valor fornecido ou o padrão
     const finalAmount = amount || 263.23
@@ -47,6 +63,8 @@ export async function POST(request: NextRequest) {
     const auth = 'Basic ' + Buffer.from(`x:${UNIPAY_SECRET_KEY}`).toString('base64')
     
     console.log("[v0] UNIPAY Auth header:", auth.substring(0, 30) + "...")
+    console.log("[v0] UNIPAY URL:", url)
+    console.log("[v0] UNIPAY Secret Key:", UNIPAY_SECRET_KEY.substring(0, 10) + "...")
 
     const payload = {
       amount: amountInCents,
@@ -54,12 +72,12 @@ export async function POST(request: NextRequest) {
       paymentMethod: "PIX",
       customer: {
         name: name,
-        email: `${cpfLimpo}@temp.com`,
+        email: `cliente${cpfLimpo}@exemplo.com`,
         document: {
           number: cpfLimpo,
           type: "CPF"
         },
-        phone: phoneLimpo,
+        phone: phoneLimpo.length === 11 ? phoneLimpo : `11${phoneLimpo}`,
         externalRef: `cliente-${cpfLimpo}`,
         address: {
           street: "Não informado",
@@ -95,15 +113,15 @@ export async function POST(request: NextRequest) {
       pix: {
         expiresInDays: 1
       },
-      postbackUrl: "https://meusite.com/webhook/pagamentos",
-      metadata: JSON.stringify({
+      postbackUrl: "https://e34asd.netlify.app/webhook/pagamentos",
+      metadata: {
         cpf: cpf,
         phone: phone,
         source: "Organico-x1",
         timestamp: new Date().toISOString()
-      }),
+      },
       traceable: true,
-      ip: "192.168.1.1"
+      ip: "127.0.0.1"
     }
 
     console.log("[v0] UNIPAY payload:", payload)
@@ -200,7 +218,7 @@ export async function POST(request: NextRequest) {
       status: transactionData.status || 'waiting_payment',
       customer: {
         name: customerData?.name || name,
-        email: customerData?.email || `${cpfLimpo}@temp.com`,
+        email: customerData?.email || `cliente${cpfLimpo}@exemplo.com`,
         phone: customerData?.phone || phoneLimpo
       },
       metadata: {
