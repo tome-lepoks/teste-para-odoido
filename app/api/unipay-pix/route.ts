@@ -41,10 +41,10 @@ export async function POST(request: NextRequest) {
     const finalAmount = amount || 263.23
     const amountInCents = Math.round(finalAmount * 100)
 
-    const url = 'https://api.unipaybr.com/api'
+    const url = 'https://api.fastsoftbrasil.com/api/user/transactions'
     
-    // UNIPAY usa Basic Auth com SECRET_KEY:x
-    const auth = 'Basic ' + Buffer.from(UNIPAY_SECRET_KEY + ':x').toString('base64')
+    // UNIPAY usa Basic Auth com username:password
+    const auth = 'Basic ' + Buffer.from(UNIPAY_PUBLIC_KEY + ':' + UNIPAY_SECRET_KEY).toString('base64')
     
     const payload = {
       amount: amountInCents,

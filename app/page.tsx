@@ -183,12 +183,13 @@ export default function Home() {
                   console.log("[v0] Amount:", pixResult.amount)
                   
                 } else {
-                  alert("Erro ao gerar PIX. Tente novamente.")
+                  console.error("[v0] PIX generation failed:", pixResult)
+                  alert(`Erro ao gerar PIX: ${pixResult.error || 'Erro desconhecido'}`)
                   setAppState("darf")
                 }
               } catch (error) {
                 console.error("[v0] Error generating PIX:", error)
-                alert("Erro ao gerar PIX. Tente novamente.")
+                alert(`Erro ao gerar PIX: ${error instanceof Error ? error.message : 'Erro de conexão'}`)
                 setAppState("darf")
               }
             }, 2000)
