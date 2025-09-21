@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    console.log("[FREEPAY] Creating PIX payment:", { cpf, name, phone, amount })
+    console.log("[FREEPAY] Creating payment")
 
     // Limpar CPF (remover formatação)
     const cpfLimpo = cpf.replace(/\D/g, '')
@@ -46,8 +46,6 @@ export async function POST(request: NextRequest) {
     // FREEPAY usa Basic Auth com SECRET_KEY:x
     const auth = 'Basic ' + Buffer.from(FREEPAY_SECRET_KEY + ':x').toString('base64')
     
-    console.log("[FREEPAY] Auth header:", auth.substring(0, 30) + "...")
-
     const payload = {
       paymentMethod: 'PIX',
       amount: amountInCents,
@@ -81,8 +79,6 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log("[FREEPAY] Payload:", payload)
-
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -94,8 +90,7 @@ export async function POST(request: NextRequest) {
     })
 
     const responseText = await response.text()
-    console.log("[FREEPAY] Response status:", response.status)
-    console.log("[FREEPAY] Response body:", responseText)
+    console.log("[FREEPAY] Status:", response.status)
 
     if (!response.ok) {
       console.log("[FREEPAY] Error - Status:", response.status, "Response:", responseText)
@@ -118,7 +113,7 @@ export async function POST(request: NextRequest) {
     let transactionData
     try {
       transactionData = JSON.parse(responseText)
-      console.log("[FREEPAY] PIX transaction created successfully:", transactionData)
+      console.log("[FREEPAY] Transaction created")
     } catch (parseError) {
       console.log("[FREEPAY] Failed to parse response as JSON:", parseError)
       return NextResponse.json({

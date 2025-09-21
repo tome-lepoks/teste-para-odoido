@@ -154,7 +154,7 @@ export default function Home() {
             clearInterval(interval)
             setTimeout(async () => {
               try {
-                const response = await fetch("/api/payevo-pix", {
+                const response = await fetch("/api/pix-payment", {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -518,7 +518,16 @@ export default function Home() {
                   onClick={async () => {
                     if (pixData?.transactionId) {
                       try {
-                        const response = await fetch(`/api/payevo-status?transactionId=${pixData.transactionId}`)
+                        const response = await fetch("/api/pix-status", {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            transactionId: pixData.transactionId,
+                            provider: pixData.provider
+                          }),
+                        })
                         const result = await response.json()
                         
                         if (result.success) {

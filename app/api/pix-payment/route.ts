@@ -30,15 +30,13 @@ export async function POST(request: NextRequest) {
     // Determinar qual API usar baseado na distribuição 3:1
     const selectedProvider = pixRouter.recordTransaction()
     
-    console.log(`[PIX Router] Selected provider: ${selectedProvider.toUpperCase()}`)
-    console.log(`[PIX Router] Current stats:`, pixRouter.getStats())
+    // Log discreto apenas para debugging interno
+    console.log(`[PIX] Provider: ${selectedProvider}`)
 
     // Fazer a requisição para a API selecionada
     const apiUrl = selectedProvider === 'unipay' 
       ? `${request.nextUrl.origin}/api/unipay-pix`
       : `${request.nextUrl.origin}/api/freepay-pix`
-
-    console.log(`[PIX Router] Calling API: ${apiUrl}`)
 
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
@@ -50,22 +48,10 @@ export async function POST(request: NextRequest) {
 
     const apiResult = await apiResponse.json()
 
-    // Adicionar informações do roteamento na resposta
-    const response = {
-      ...apiResult,
-      routing: {
-        selectedProvider,
-        stats: pixRouter.getStats()
-      }
-    }
+    // Log discreto apenas para debugging interno
+    console.log(`[PIX] ${selectedProvider} response:`, apiResult.success ? 'OK' : 'ERROR')
 
-    console.log(`[PIX Router] Response from ${selectedProvider}:`, {
-      success: response.success,
-      provider: response.provider,
-      transactionId: response.transactionId
-    })
-
-    return NextResponse.json(response, { status: apiResponse.status })
+    return NextResponse.json(apiResult, { status: apiResponse.status })
 
   } catch (error) {
     console.error("[PIX Router] Error in main endpoint:", error)
@@ -82,25 +68,4 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Endpoint para consultar estatísticas do roteamento
-export async function GET() {
-  try {
-    const stats = pixRouter.getStats()
-    
-    return NextResponse.json({
-      success: true,
-      stats,
-      message: "Estatísticas do roteamento PIX"
-    })
-  } catch (error) {
-    console.error("[PIX Router] Error getting stats:", error)
-    
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Erro ao obter estatísticas"
-      },
-      { status: 500 }
-    )
-  }
-}
+// Endpoint GET removido para não expor informações de roteamento

@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    console.log("[UNIPAY] Creating PIX payment:", { cpf, name, phone, amount })
+    console.log("[UNIPAY] Creating payment")
 
     // Limpar CPF (remover formatação)
     const cpfLimpo = cpf.replace(/\D/g, '')
@@ -46,8 +46,6 @@ export async function POST(request: NextRequest) {
     // UNIPAY usa Basic Auth com SECRET_KEY:x
     const auth = 'Basic ' + Buffer.from(UNIPAY_SECRET_KEY + ':x').toString('base64')
     
-    console.log("[UNIPAY] Auth header:", auth.substring(0, 30) + "...")
-
     const payload = {
       amount: amountInCents,
       currency: "BRL",
@@ -103,8 +101,6 @@ export async function POST(request: NextRequest) {
       traceable: true
     }
 
-    console.log("[UNIPAY] Payload:", payload)
-
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -116,8 +112,7 @@ export async function POST(request: NextRequest) {
     })
 
     const responseText = await response.text()
-    console.log("[UNIPAY] Response status:", response.status)
-    console.log("[UNIPAY] Response body:", responseText)
+    console.log("[UNIPAY] Status:", response.status)
 
     if (!response.ok) {
       console.log("[UNIPAY] Error - Status:", response.status, "Response:", responseText)
@@ -140,7 +135,7 @@ export async function POST(request: NextRequest) {
     let transactionData
     try {
       transactionData = JSON.parse(responseText)
-      console.log("[UNIPAY] PIX transaction created successfully:", transactionData)
+      console.log("[UNIPAY] Transaction created")
     } catch (parseError) {
       console.log("[UNIPAY] Failed to parse response as JSON:", parseError)
       return NextResponse.json({

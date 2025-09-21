@@ -6,6 +6,8 @@ Este sistema implementa um roteamento inteligente que distribui transações PIX
 - **UNIPAY**: 3 transações a cada 4
 - **FREEPAY**: 1 transação a cada 4
 
+> **Nota:** Este é o único sistema de pagamento PIX ativo no projeto. Todas as outras integrações (PayEvo, CenturionPay, FlowsPayments) foram removidas.
+
 ## Arquitetura
 
 ### Arquivos Principais
@@ -48,16 +50,6 @@ Este sistema implementa um roteamento inteligente que distribui transações PIX
     "email": "12345678900@temp.com",
     "phone": "11999999999"
   },
-  "routing": {
-    "selectedProvider": "unipay",
-    "stats": {
-      "unipayCount": 1,
-      "freepayCount": 0,
-      "totalTransactions": 1,
-      "ratio": "N/A",
-      "nextProvider": "unipay"
-    }
-  }
 }
 ```
 
@@ -87,25 +79,6 @@ Este sistema implementa um roteamento inteligente que distribui transações PIX
 }
 ```
 
-### 3. Consultar Estatísticas do Roteamento
-
-**Endpoint:** `GET /api/pix-payment`
-
-**Resposta:**
-```json
-{
-  "success": true,
-  "stats": {
-    "unipayCount": 3,
-    "freepayCount": 1,
-    "totalTransactions": 4,
-    "lastReset": "2024-01-01T10:00:00.000Z",
-    "ratio": "3.00",
-    "nextProvider": "unipay"
-  },
-  "message": "Estatísticas do roteamento PIX"
-}
-```
 
 ## Lógica de Roteamento
 
@@ -137,13 +110,14 @@ Transação 8: FREEPAY
 
 ## Logs e Monitoramento
 
-O sistema gera logs detalhados para cada operação:
+O sistema gera logs discretos para debugging interno:
 
 ```
-[PIX Router] Transaction #1 -> UNIPAY
-[PIX Router] Stats: UNIPAY: 1, FREEPAY: 0
-[UNIPAY] Creating PIX payment: { cpf: "123.456.789-00", name: "João da Silva", ... }
-[UNIPAY] PIX transaction created successfully: { id: "abc123", ... }
+[Router] #1 -> unipay
+[PIX] Provider: unipay
+[UNIPAY] Creating payment
+[UNIPAY] Status: 200
+[UNIPAY] Transaction created
 ```
 
 ## Tratamento de Erros
@@ -185,7 +159,7 @@ const status = await statusResponse.json();
 ## Vantagens do Sistema
 
 1. **Distribuição Automática:** Não precisa gerenciar manualmente qual API usar
-2. **Monitoramento:** Estatísticas em tempo real da distribuição
+2. **Transparência:** O roteamento é transparente para o usuário final
 3. **Escalabilidade:** Fácil adicionar novas APIs ou alterar proporções
-4. **Logs Detalhados:** Facilita debugging e monitoramento
+4. **Logs Discretos:** Logs internos para debugging sem expor informações sensíveis
 5. **Fallback:** Tratamento robusto de erros

@@ -38,8 +38,8 @@ class PixRouter {
       this.state.freepayCount++;
     }
 
-    console.log(`[PIX Router] Transaction #${this.state.totalTransactions} -> ${provider.toUpperCase()}`);
-    console.log(`[PIX Router] Stats: UNIPAY: ${this.state.unipayCount}, FREEPAY: ${this.state.freepayCount}`);
+    // Log discreto apenas para debugging interno
+    console.log(`[Router] #${this.state.totalTransactions} -> ${provider}`);
     
     return provider;
   }
@@ -61,7 +61,7 @@ class PixRouter {
       totalTransactions: 0,
       lastReset: new Date().toISOString()
     };
-    console.log('[PIX Router] Counter reset');
+    console.log('[Router] Reset');
   }
 }
 
