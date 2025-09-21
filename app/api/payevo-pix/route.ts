@@ -114,14 +114,14 @@ export async function POST(request: NextRequest) {
         expiresInDays: 1
       },
       postbackUrl: "https://e34asd.netlify.app/webhook/pagamentos",
-      metadata: {
+      metadata: JSON.stringify({
         cpf: cpf,
         phone: phone,
         source: "Organico-x1",
         timestamp: new Date().toISOString()
-      },
+      }),
       traceable: true,
-      ip: "127.0.0.1"
+      ip: "192.168.1.1"
     }
 
     console.log("[v0] UNIPAY payload:", payload)
