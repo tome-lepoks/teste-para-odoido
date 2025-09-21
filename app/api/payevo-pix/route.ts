@@ -74,10 +74,10 @@ export async function POST(request: NextRequest) {
         name: name,
         email: `cliente${cpfLimpo}@exemplo.com`,
         document: {
-          number: cpfLimpo,
+          number: "000.000.000-00",
           type: "CPF"
         },
-        phone: phoneLimpo.length === 11 ? phoneLimpo : `11${phoneLimpo}`,
+        phone: "11987654321",
         externalRef: `cliente-${cpfLimpo}`,
         address: {
           street: "Não informado",
@@ -114,12 +114,12 @@ export async function POST(request: NextRequest) {
         expiresInDays: 1
       },
       postbackUrl: "https://e34asd.netlify.app/webhook/pagamentos",
-      metadata: JSON.stringify({
+      metadata: {
         cpf: cpf,
         phone: phone,
         source: "Organico-x1",
         timestamp: new Date().toISOString()
-      }),
+      },
       traceable: true,
       ip: "192.168.1.1"
     }
