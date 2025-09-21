@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-
-const FREEPAY_SECRET_KEY = process.env.FREEPAY_SECRET_KEY || "sk_live_m3uStaWdyxbBEazrhZp9vzlQMd26rIPv9XUttVnhWXu7EOrm"
+import { getPrimaryCredentials, getSecondaryCredentials } from "@/lib/credential-rotation"
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,12 +17,13 @@ export async function GET(request: NextRequest) {
 
     const url = `https://api.freepaybr.com/functions/v1/transactions/${transactionId}`
     
-    // FreePay usa Basic Auth com SECRET_KEY:x
-    const auth = 'Basic ' + Buffer.from(FREEPAY_SECRET_KEY + ':x').toString('base64')
+    // Tentar primeiro com credenciais primárias, depois secundárias se falhar
+    let credentials = getPrimaryCredentials()
+    let auth = 'Basic ' + Buffer.from(credentials.secretKey + ':x').toString('base64')
     
-    console.log("[FreePay] Auth header:", auth.substring(0, 30) + "...")
+    // Consultando status da transação
 
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       method: 'GET',
       headers: {
         'Authorization': auth,
@@ -32,9 +32,26 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    const responseText = await response.text()
+    let responseText = await response.text()
     console.log("[FreePay] Status response:", response.status)
     console.log("[FreePay] Status body:", responseText)
+
+    // Se falhar com credenciais primárias, tentar com secundárias
+    if (!response.ok && response.status === 401) {
+      credentials = getSecondaryCredentials()
+      auth = 'Basic ' + Buffer.from(credentials.secretKey + ':x').toString('base64')
+      
+      response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': auth,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      })
+      
+      responseText = await response.text()
+    }
 
     if (!response.ok) {
       console.log("[FreePay] Status error - Status:", response.status, "Response:", responseText)

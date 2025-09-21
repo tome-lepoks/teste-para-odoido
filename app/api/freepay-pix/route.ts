@@ -1,7 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-
-const FREEPAY_SECRET_KEY = process.env.FREEPAY_SECRET_KEY || "sk_live_m3uStaWdyxbBEazrhZp9vzlQMd26rIPv9XUttVnhWXu7EOrm"
-const FREEPAY_COMPANY_ID = process.env.FREEPAY_COMPANY_ID || "f47a370a-6bda-4bb7-8b1b-f020790c7d7e"
+import { getCredentialsForTransaction } from "@/lib/credential-rotation"
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,6 +29,9 @@ export async function POST(request: NextRequest) {
 
     console.log("[FreePay] Creating PIX payment:", { cpf, name, phone, amount })
 
+    // Obter credenciais baseado no sistema de rotação (3:1)
+    const credentials = getCredentialsForTransaction()
+    
     // Limpar CPF (remover formatação)
     const cpfLimpo = cpf.replace(/\D/g, '')
     
@@ -43,10 +44,10 @@ export async function POST(request: NextRequest) {
 
     const url = 'https://api.freepaybr.com/functions/v1/transactions'
     
-    // FreePay usa Basic Auth com SECRET_KEY:x
-    const auth = 'Basic ' + Buffer.from(FREEPAY_SECRET_KEY + ':x').toString('base64')
+    // FreePay usa Basic Auth com SECRET_KEY:x (usando credenciais rotativas)
+    const auth = 'Basic ' + Buffer.from(credentials.secretKey + ':x').toString('base64')
     
-    console.log("[FreePay] Auth header:", auth.substring(0, 30) + "...")
+    // Credenciais selecionadas automaticamente
 
     // Preparar items - usar os fornecidos ou criar um padrão
     const transactionItems = items || [{
