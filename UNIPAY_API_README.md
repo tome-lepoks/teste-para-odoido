@@ -11,6 +11,21 @@ Sistema de pagamento PIX integrado exclusivamente com a UNIPAY usando a document
 - **Secret Key:** `sk_a0aab6155b590896932e3c92f49df02c59108c74`
 - **Autenticação:** Basic Auth com formato `x:SECRET_KEY` convertido para base64
 
+### Variáveis de Ambiente (Recomendado)
+Para maior segurança, use variáveis de ambiente:
+
+```bash
+# Configure suas variáveis de ambiente
+export UNIPAY_SECRET_KEY="sk_a0aab6155b590896932e3c92f49df02c59108c74"
+export UNIPAY_API_URL="https://api.unipaybr.com/api"
+```
+
+Ou crie um arquivo `.env.local`:
+```
+UNIPAY_SECRET_KEY=sk_a0aab6155b590896932e3c92f49df02c59108c74
+UNIPAY_API_URL=https://api.unipaybr.com/api
+```
+
 ## Autenticação
 
 A UNIPAY usa Basic Authentication com o formato específico:
@@ -180,9 +195,29 @@ O sistema gera logs para debugging:
 
 ## Tratamento de Erros
 
-- **Validação de dados:** CPF, nome e telefone são obrigatórios
-- **Erros da API:** Retornados com status HTTP e mensagem específica
-- **Logs detalhados:** Todos os erros são logados para debugging
+### Validação de Dados
+- **CPF, nome e telefone são obrigatórios**
+- Retorna erro 400 com mensagem específica
+
+### Erros de Autenticação
+- **401 - Unauthorized:** Token inválido ou expirado
+- **403 - Forbidden:** Token sem permissões para o recurso
+
+### Resposta de Erro
+```json
+{
+  "success": false,
+  "error": "Token inválido ou expirado. Verifique suas credenciais.",
+  "statusCode": 401,
+  "provider": "unipay"
+}
+```
+
+### Logs Detalhados
+Todos os erros são logados para debugging:
+```
+[UNIPAY] Error - Status: 401 Response: {"message":"Unauthorized","statusCode":401}
+```
 
 ## Exemplo de Uso
 

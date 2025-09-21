@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-const UNIPAY_SECRET_KEY = "sk_a0aab6155b590896932e3c92f49df02c59108c74"
+// Usar variáveis de ambiente para segurança
+const UNIPAY_SECRET_KEY = process.env.UNIPAY_SECRET_KEY || "sk_a0aab6155b590896932e3c92f49df02c59108c74"
+const UNIPAY_API_URL = process.env.UNIPAY_API_URL || "https://api.unipaybr.com/api"
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +17,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`[UNIPAY] Checking status for transaction:`, transactionId)
 
-    const url = `https://api.unipaybr.com/api/transactions/${transactionId}`
+    const url = `${UNIPAY_API_URL}/transactions/${transactionId}`
     const auth = 'Basic ' + Buffer.from('x:' + UNIPAY_SECRET_KEY).toString('base64')
 
     const response = await fetch(url, {
@@ -31,9 +33,26 @@ export async function POST(request: NextRequest) {
     console.log(`[UNIPAY] Response body:`, responseText)
 
     if (!response.ok) {
+      let errorMessage = `Erro ao consultar status na UNIPAY: ${response.status}`
+      
+      try {
+        const errorData = JSON.parse(responseText)
+        errorMessage = errorData.message || errorData.error || errorMessage
+        
+        // Tratamento específico de erros conforme documentação
+        if (response.status === 401) {
+          errorMessage = "Token inválido ou expirado. Verifique suas credenciais."
+        } else if (response.status === 403) {
+          errorMessage = "Token sem permissões para este recurso."
+        }
+      } catch (e) {
+        // Usar mensagem padrão se não conseguir fazer parse
+      }
+      
       return NextResponse.json({
         success: false,
-        error: `Erro ao consultar status na UNIPAY: ${response.status}`,
+        error: errorMessage,
+        statusCode: response.status,
         provider: 'unipay'
       }, { status: response.status })
     }

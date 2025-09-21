@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-const UNIPAY_SECRET_KEY = "sk_a0aab6155b590896932e3c92f49df02c59108c74"
+// Usar variáveis de ambiente para segurança
+const UNIPAY_SECRET_KEY = process.env.UNIPAY_SECRET_KEY || "sk_a0aab6155b590896932e3c92f49df02c59108c74"
+const UNIPAY_API_URL = process.env.UNIPAY_API_URL || "https://api.unipaybr.com/api"
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,7 +42,7 @@ export async function POST(request: NextRequest) {
     const finalAmount = amount || 263.23
     const amountInCents = Math.round(finalAmount * 100)
 
-    const url = 'https://api.unipaybr.com/api'
+    const url = UNIPAY_API_URL
     
     // UNIPAY usa Basic Auth com x:SECRET_KEY convertido para base64
     const auth = 'Basic ' + Buffer.from('x:' + UNIPAY_SECRET_KEY).toString('base64')
@@ -125,9 +127,18 @@ export async function POST(request: NextRequest) {
       console.log("[UNIPAY] Error - Status:", response.status, "Response:", responseText)
       
       let errorMessage = `UNIPAY error: ${response.status}`
+      let errorCode = response.status
+      
       try {
         const errorData = JSON.parse(responseText)
         errorMessage = errorData.message || errorData.error || errorMessage
+        
+        // Tratamento específico de erros conforme documentação
+        if (response.status === 401) {
+          errorMessage = "Token inválido ou expirado. Verifique suas credenciais."
+        } else if (response.status === 403) {
+          errorMessage = "Token sem permissões para este recurso."
+        }
       } catch (e) {
         errorMessage = responseText || errorMessage
       }
@@ -135,6 +146,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         error: errorMessage,
+        statusCode: errorCode,
         provider: 'unipay'
       }, { status: response.status })
     }
