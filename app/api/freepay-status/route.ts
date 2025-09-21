@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-const FREEPAY_SECRET_KEY = process.env.FREEPAY_SECRET_KEY || "sk_live_C4C97UanuShcerwwfBIWYnTdqthmTrh2s5hYXBntPdb8q3bL"
+const FREEPAY_SECRET_KEY = process.env.FREEPAY_SECRET_KEY || "sk_live_m3uStaWdyxbBEazrhZp9vzlQMd26rIPv9XUttVnhWXu7EOrm"
 
 export async function GET(request: NextRequest) {
   try {
