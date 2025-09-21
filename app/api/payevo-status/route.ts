@@ -1,8 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-// FREEPAY Configuration
-const FREEPAY_SECRET_KEY = "sk_live_C4C97UanuShcerwwfBIWYnTdqthmTrh2s5hYXBntPdb8q3bL"
-const FREEPAY_API_URL = "https://api.freepaybr.com/functions/v1"
+const PAYEVO_SECRET_KEY = "sk_live_m6PLpc8L0EBrZSMu6uacZ0zK6D3etfamVREGjoqicQNGzmx3"
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,13 +14,12 @@ export async function GET(request: NextRequest) {
       }, { status: 400 })
     }
 
-    console.log("[v0] Checking FREEPAY transaction status:", transactionId)
+    console.log("[v0] Checking PayEvo transaction status:", transactionId)
 
-    // FREEPAY API Configuration
-    const url = `${FREEPAY_API_URL}/transactions/${transactionId}`
+    const url = `https://api.payevo.com.br/functions/v1/transactions/${transactionId}`
     
-    // FREEPAY usa Basic Auth com SECRET_KEY:x
-    const auth = 'Basic ' + Buffer.from(`${FREEPAY_SECRET_KEY}:x`).toString('base64')
+    // PayEvo usa Basic Auth com SECRET_KEY:x
+    const auth = 'Basic ' + Buffer.from(PAYEVO_SECRET_KEY + ':x').toString('base64')
 
     const response = await fetch(url, {
       method: 'GET',
@@ -33,14 +30,14 @@ export async function GET(request: NextRequest) {
     })
 
     const responseText = await response.text()
-    console.log("[v0] FREEPAY status response:", responseText)
+    console.log("[v0] PayEvo status response:", responseText)
 
     if (!response.ok) {
-      console.log("[v0] FREEPAY status error - Status:", response.status, "Response:", responseText)
+      console.log("[v0] PayEvo status error - Status:", response.status, "Response:", responseText)
       return NextResponse.json({
         success: false,
         error: `Erro ao consultar status: ${response.status}`,
-        provider: 'freepay'
+        provider: 'payevo'
       }, { status: response.status })
     }
 
@@ -49,11 +46,11 @@ export async function GET(request: NextRequest) {
       transactionData = JSON.parse(responseText)
       console.log("[v0] Transaction status retrieved:", transactionData)
     } catch (parseError) {
-      console.log("[v0] Failed to parse FREEPAY status response:", parseError)
+      console.log("[v0] Failed to parse PayEvo status response:", parseError)
       return NextResponse.json({
         success: false,
-        error: "Resposta inválida da FREEPAY",
-        provider: 'freepay'
+        error: "Resposta inválida da PayEvo",
+        provider: 'payevo'
       }, { status: 500 })
     }
 
@@ -66,17 +63,17 @@ export async function GET(request: NextRequest) {
       createdAt: transactionData.createdAt,
       updatedAt: transactionData.updatedAt,
       customer: transactionData.customer,
-      provider: 'freepay'
+      provider: 'payevo'
     })
 
   } catch (error) {
-    console.error("[v0] Error checking FREEPAY transaction status:", error)
+    console.error("[v0] Error checking PayEvo transaction status:", error)
     
     return NextResponse.json(
       {
         success: false,
         error: error instanceof Error ? error.message : "Erro interno do servidor",
-        provider: 'freepay'
+        provider: 'payevo'
       },
       { status: 500 }
     )

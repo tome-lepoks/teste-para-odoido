@@ -1,11 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-const PAYEVO_SECRET_KEY = "sk_live_m6PLpc8L0EBrZSMu6uacZ0zK6D3etfamVREGjoqicQNGzmx3"
-const PAYEVO_COMPANY_ID = "4475bdde-d261-4fdf-a61c-94d98ffa8cf1"
+const FREEPAY_SECRET_KEY = process.env.FREEPAY_SECRET_KEY || "sk_live_C4C97UanuShcerwwfBIWYnTdqthmTrh2s5hYXBntPdb8q3bL"
+const FREEPAY_COMPANY_ID = process.env.FREEPAY_COMPANY_ID || "b16176ba-9c1c-49d1-ad5d-aa56ef88a05d"
 
 export async function POST(request: NextRequest) {
   try {
-    const { amount, cpf, name, phone } = await request.json()
+    const { amount, cpf, name, phone, email, description, items } = await request.json()
     
     // Validações obrigatórias
     if (!cpf) {
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    console.log("[v0] Creating PIX payment with PayEvo:", { cpf, name, phone, amount })
+    console.log("[FreePay] Creating PIX payment:", { cpf, name, phone, amount })
 
     // Limpar CPF (remover formatação)
     const cpfLimpo = cpf.replace(/\D/g, '')
@@ -38,28 +38,31 @@ export async function POST(request: NextRequest) {
     const phoneLimpo = phone.replace(/\D/g, '')
     
     // Usar o valor fornecido ou o padrão
-    const finalAmount = amount || 263.23
+    const finalAmount = amount || 199.93
     const amountInCents = Math.round(finalAmount * 100)
 
-    const url = 'https://api.payevo.com.br/functions/v1/transactions'
+    const url = 'https://api.freepaybr.com/functions/v1/transactions'
     
-    // PayEvo usa Basic Auth com SECRET_KEY:x
-    const auth = 'Basic ' + Buffer.from(PAYEVO_SECRET_KEY + ':x').toString('base64')
+    // FreePay usa Basic Auth com SECRET_KEY:x
+    const auth = 'Basic ' + Buffer.from(FREEPAY_SECRET_KEY + ':x').toString('base64')
     
-    console.log("[v0] PayEvo Auth header:", auth.substring(0, 30) + "...")
+    console.log("[FreePay] Auth header:", auth.substring(0, 30) + "...")
+
+    // Preparar items - usar os fornecidos ou criar um padrão
+    const transactionItems = items || [{
+      title: 'Produto FreePay',
+      unitPrice: amountInCents,
+      quantity: 1,
+      externalRef: `PRODUTO_FREEPAY_${cpfLimpo}`
+    }]
 
     const payload = {
       paymentMethod: 'PIX',
       amount: amountInCents,
-      items: [{
-        title: 'Produto005',
-        unitPrice: amountInCents,
-        quantity: 1,
-        externalRef: `PRODUTO005_${cpfLimpo}`
-      }],
+      items: transactionItems,
       customer: {
         name: name,
-        email: `${cpfLimpo}@temp.com`,
+        email: email || `${cpfLimpo}@temp.com`,
         phone: phoneLimpo
       },
       shipping: {
@@ -71,16 +74,17 @@ export async function POST(request: NextRequest) {
         state: 'SP',
         complement: 'Apto 1'
       },
-      description: 'Pagamento de Produto005',
+      description: description || 'Pagamento via FreePay',
       metadata: JSON.stringify({
         cpf: cpf,
         phone: phone,
-        source: 'Organico-x1',
+        source: 'FreePay-Integration',
         timestamp: new Date().toISOString()
-      })
+      }),
+      postbackUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://your-domain.com'}/api/freepay-webhook`
     }
 
-    console.log("[v0] PayEvo payload:", payload)
+    console.log("[FreePay] Payload:", payload)
 
     const response = await fetch(url, {
       method: 'POST',
@@ -93,14 +97,14 @@ export async function POST(request: NextRequest) {
     })
 
     const responseText = await response.text()
-    console.log("[v0] PayEvo response status:", response.status)
-    console.log("[v0] PayEvo response body:", responseText)
+    console.log("[FreePay] Response status:", response.status)
+    console.log("[FreePay] Response body:", responseText)
 
     if (!response.ok) {
-      console.log("[v0] PayEvo error - Status:", response.status, "Response:", responseText)
+      console.log("[FreePay] Error - Status:", response.status, "Response:", responseText)
       
       // Tentar extrair mensagem de erro da resposta
-      let errorMessage = `PayEvo error: ${response.status}`
+      let errorMessage = `FreePay error: ${response.status}`
       try {
         const errorData = JSON.parse(responseText)
         errorMessage = errorData.message || errorData.error || errorMessage
@@ -112,25 +116,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         error: errorMessage,
-        provider: 'payevo'
+        provider: 'freepay'
       }, { status: response.status })
     }
 
     let transactionData
     try {
       transactionData = JSON.parse(responseText)
-      console.log("[v0] PIX transaction created successfully:", transactionData)
+      console.log("[FreePay] PIX transaction created successfully:", transactionData)
     } catch (parseError) {
-      console.log("[v0] Failed to parse PayEvo response as JSON:", parseError)
+      console.log("[FreePay] Failed to parse response as JSON:", parseError)
       return NextResponse.json({
         success: false,
-        error: "Resposta inválida da PayEvo",
-        provider: 'payevo'
+        error: "Resposta inválida da FreePay",
+        provider: 'freepay'
       }, { status: 500 })
     }
 
-    // Extrair dados PIX da resposta PayEvo
-    console.log("[v0] Full transaction data:", JSON.stringify(transactionData, null, 2))
+    // Extrair dados PIX da resposta FreePay
+    console.log("[FreePay] Full transaction data:", JSON.stringify(transactionData, null, 2))
     
     const pixData = transactionData.pix
     const pixCode = pixData?.qrcode || transactionData.qrcode
@@ -138,14 +142,14 @@ export async function POST(request: NextRequest) {
     const expirationDate = pixData?.expirationDate
     const customerData = transactionData.customer
 
-    console.log("[v0] PIX data extracted:", { pixData, pixCode, transactionId, expirationDate })
+    console.log("[FreePay] PIX data extracted:", { pixData, pixCode, transactionId, expirationDate })
 
     if (!pixCode) {
-      console.log("[v0] No PIX QR code found in response:", transactionData)
+      console.log("[FreePay] No PIX QR code found in response:", transactionData)
       return NextResponse.json({
         success: false,
-        error: "Código PIX não foi gerado pela PayEvo",
-        provider: 'payevo'
+        error: "Código PIX não foi gerado pela FreePay",
+        provider: 'freepay'
       }, { status: 500 })
     }
 
@@ -158,9 +162,9 @@ export async function POST(request: NextRequest) {
       // Usar API gratuita para gerar QR code
       const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(pixCode)}`
       qrCodeImage = qrApiUrl
-      console.log("[v0] QR Code URL generated successfully:", qrApiUrl)
+      console.log("[FreePay] QR Code URL generated successfully:", qrApiUrl)
     } catch (qrError) {
-      console.log("[v0] Error generating QR Code URL:", qrError)
+      console.log("[FreePay] Error generating QR Code URL:", qrError)
     }
 
     return NextResponse.json({
@@ -170,27 +174,35 @@ export async function POST(request: NextRequest) {
       amount: finalAmount,
       transactionId: transactionId,
       expiresAt: expiresAt,
-      provider: 'payevo',
+      provider: 'freepay',
       status: transactionData.status || 'waiting_payment',
       customer: {
         name: customerData?.name || name,
-        email: customerData?.email || `${cpfLimpo}@temp.com`,
+        email: customerData?.email || email || `${cpfLimpo}@temp.com`,
         phone: customerData?.phone || phoneLimpo
       },
       metadata: {
         cpf: cpf,
         phone: phone,
-        source: 'Organico-x1',
+        source: 'FreePay-Integration',
         timestamp: new Date().toISOString()
+      },
+      transaction: {
+        id: transactionData.id,
+        amount: transactionData.amount,
+        status: transactionData.status,
+        paymentMethod: transactionData.paymentMethod,
+        createdAt: transactionData.createdAt,
+        updatedAt: transactionData.updatedAt
       }
     })
 
   } catch (error) {
-    console.error("[v0] Error creating PayEvo PIX transaction:", error)
+    console.error("[FreePay] Error creating PIX transaction:", error)
     
     // Log detalhado do erro para debugging
     if (error instanceof Error) {
-      console.error("[v0] Error details:", {
+      console.error("[FreePay] Error details:", {
         message: error.message,
         stack: error.stack,
         name: error.name
@@ -201,7 +213,7 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: error instanceof Error ? error.message : "Erro interno do servidor",
-        provider: 'payevo',
+        provider: 'freepay',
         timestamp: new Date().toISOString()
       },
       { status: 500 }
