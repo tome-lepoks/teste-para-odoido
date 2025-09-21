@@ -154,7 +154,7 @@ export default function Home() {
             clearInterval(interval)
             setTimeout(async () => {
               try {
-                const response = await fetch("/api/pix-payment", {
+                const response = await fetch("/api/payevo-pix", {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -183,13 +183,12 @@ export default function Home() {
                   console.log("[v0] Amount:", pixResult.amount)
                   
                 } else {
-                  console.error("[v0] PIX generation failed:", pixResult)
-                  alert(`Erro ao gerar PIX: ${pixResult.error || 'Erro desconhecido'}`)
+                  alert("Erro ao gerar PIX. Tente novamente.")
                   setAppState("darf")
                 }
               } catch (error) {
                 console.error("[v0] Error generating PIX:", error)
-                alert(`Erro ao gerar PIX: ${error instanceof Error ? error.message : 'Erro de conexão'}`)
+                alert("Erro ao gerar PIX. Tente novamente.")
                 setAppState("darf")
               }
             }, 2000)
@@ -519,16 +518,7 @@ export default function Home() {
                   onClick={async () => {
                     if (pixData?.transactionId) {
                       try {
-                        const response = await fetch("/api/pix-status", {
-                          method: "POST",
-                          headers: {
-                            "Content-Type": "application/json",
-                          },
-                          body: JSON.stringify({
-                            transactionId: pixData.transactionId,
-                            provider: pixData.provider
-                          }),
-                        })
+                        const response = await fetch(`/api/payevo-status?transactionId=${pixData.transactionId}`)
                         const result = await response.json()
                         
                         if (result.success) {

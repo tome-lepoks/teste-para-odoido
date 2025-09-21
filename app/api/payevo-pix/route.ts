@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-const PAYEVO_SECRET_KEY = "sk_live_m6PLpc8L0EBrZSMu6uacZ0zK6D3etfamVREGjoqicQNGzmx3"
-const PAYEVO_COMPANY_ID = "4475bdde-d261-4fdf-a61c-94d98ffa8cf1"
+const UNIPAY_SECRET_KEY = "sk_a0aab6155b590896932e3c92f49df02c59108c74"
+const UNIPAY_API_URL = "https://api.unipaybr.com/api"
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    console.log("[v0] Creating PIX payment with PayEvo:", { cpf, name, phone, amount })
+    console.log("[v0] Creating PIX payment with UNIPAY:", { cpf, name, phone, amount })
 
     // Limpar CPF (remover formatação)
     const cpfLimpo = cpf.replace(/\D/g, '')
@@ -41,46 +41,72 @@ export async function POST(request: NextRequest) {
     const finalAmount = amount || 263.23
     const amountInCents = Math.round(finalAmount * 100)
 
-    const url = 'https://api.payevo.com.br/functions/v1/transactions'
+    const url = `${UNIPAY_API_URL}/user/transactions`
     
-    // PayEvo usa Basic Auth com SECRET_KEY:x
-    const auth = 'Basic ' + Buffer.from(PAYEVO_SECRET_KEY + ':x').toString('base64')
+    // UNIPAY usa Basic Auth com x:SECRET_KEY
+    const auth = 'Basic ' + Buffer.from(`x:${UNIPAY_SECRET_KEY}`).toString('base64')
     
-    console.log("[v0] PayEvo Auth header:", auth.substring(0, 30) + "...")
+    console.log("[v0] UNIPAY Auth header:", auth.substring(0, 30) + "...")
 
     const payload = {
-      paymentMethod: 'PIX',
       amount: amountInCents,
-      items: [{
-        title: 'Produto005',
-        unitPrice: amountInCents,
-        quantity: 1,
-        externalRef: `PRODUTO005_${cpfLimpo}`
-      }],
+      currency: "BRL",
+      paymentMethod: "PIX",
       customer: {
         name: name,
         email: `${cpfLimpo}@temp.com`,
-        phone: phoneLimpo
+        document: {
+          number: cpfLimpo,
+          type: "CPF"
+        },
+        phone: phoneLimpo,
+        externalRef: `cliente-${cpfLimpo}`,
+        address: {
+          street: "Não informado",
+          streetNumber: "0",
+          complement: "",
+          zipCode: "00000000",
+          neighborhood: "Não informado",
+          city: "Não informado",
+          state: "SP",
+          country: "BR"
+        }
       },
       shipping: {
-        street: 'Rua Exemplo',
-        streetNumber: '123',
-        zipCode: '12345678',
-        neighborhood: 'Centro',
-        city: 'São Paulo',
-        state: 'SP',
-        complement: 'Apto 1'
+        fee: 0,
+        address: {
+          street: "Não informado",
+          streetNumber: "0",
+          complement: "",
+          zipCode: "00000000",
+          neighborhood: "Não informado",
+          city: "Não informado",
+          state: "SP",
+          country: "BR"
+        }
       },
-      description: 'Pagamento de Produto005',
+      items: [{
+        title: "DARF - Imposto de Renda",
+        unitPrice: amountInCents,
+        quantity: 1,
+        tangible: false,
+        externalRef: "darf-ir-2024"
+      }],
+      pix: {
+        expiresInDays: 1
+      },
+      postbackUrl: "https://meusite.com/webhook/pagamentos",
       metadata: JSON.stringify({
         cpf: cpf,
         phone: phone,
-        source: 'Organico-x1',
+        source: "Organico-x1",
         timestamp: new Date().toISOString()
-      })
+      }),
+      traceable: true,
+      ip: "192.168.1.1"
     }
 
-    console.log("[v0] PayEvo payload:", payload)
+    console.log("[v0] UNIPAY payload:", payload)
 
     const response = await fetch(url, {
       method: 'POST',
@@ -93,14 +119,14 @@ export async function POST(request: NextRequest) {
     })
 
     const responseText = await response.text()
-    console.log("[v0] PayEvo response status:", response.status)
-    console.log("[v0] PayEvo response body:", responseText)
+    console.log("[v0] UNIPAY response status:", response.status)
+    console.log("[v0] UNIPAY response body:", responseText)
 
     if (!response.ok) {
-      console.log("[v0] PayEvo error - Status:", response.status, "Response:", responseText)
+      console.log("[v0] UNIPAY error - Status:", response.status, "Response:", responseText)
       
       // Tentar extrair mensagem de erro da resposta
-      let errorMessage = `PayEvo error: ${response.status}`
+      let errorMessage = `UNIPAY error: ${response.status}`
       try {
         const errorData = JSON.parse(responseText)
         errorMessage = errorData.message || errorData.error || errorMessage
@@ -112,7 +138,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         error: errorMessage,
-        provider: 'payevo'
+        provider: 'unipay'
       }, { status: response.status })
     }
 
@@ -121,21 +147,21 @@ export async function POST(request: NextRequest) {
       transactionData = JSON.parse(responseText)
       console.log("[v0] PIX transaction created successfully:", transactionData)
     } catch (parseError) {
-      console.log("[v0] Failed to parse PayEvo response as JSON:", parseError)
+      console.log("[v0] Failed to parse UNIPAY response as JSON:", parseError)
       return NextResponse.json({
         success: false,
-        error: "Resposta inválida da PayEvo",
-        provider: 'payevo'
+        error: "Resposta inválida da UNIPAY",
+        provider: 'unipay'
       }, { status: 500 })
     }
 
-    // Extrair dados PIX da resposta PayEvo
+    // Extrair dados PIX da resposta UNIPAY
     console.log("[v0] Full transaction data:", JSON.stringify(transactionData, null, 2))
     
     const pixData = transactionData.pix
-    const pixCode = pixData?.qrcode || transactionData.qrcode
-    const transactionId = transactionData.id
-    const expirationDate = pixData?.expirationDate
+    const pixCode = pixData?.qrcode || transactionData.qrcode || transactionData.pixCode
+    const transactionId = transactionData.id || transactionData.transactionId
+    const expirationDate = pixData?.expirationDate || transactionData.expiresAt
     const customerData = transactionData.customer
 
     console.log("[v0] PIX data extracted:", { pixData, pixCode, transactionId, expirationDate })
@@ -144,8 +170,8 @@ export async function POST(request: NextRequest) {
       console.log("[v0] No PIX QR code found in response:", transactionData)
       return NextResponse.json({
         success: false,
-        error: "Código PIX não foi gerado pela PayEvo",
-        provider: 'payevo'
+        error: "Código PIX não foi gerado pela UNIPAY",
+        provider: 'unipay'
       }, { status: 500 })
     }
 
@@ -170,7 +196,7 @@ export async function POST(request: NextRequest) {
       amount: finalAmount,
       transactionId: transactionId,
       expiresAt: expiresAt,
-      provider: 'payevo',
+      provider: 'unipay',
       status: transactionData.status || 'waiting_payment',
       customer: {
         name: customerData?.name || name,
@@ -186,7 +212,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("[v0] Error creating PayEvo PIX transaction:", error)
+    console.error("[v0] Error creating UNIPAY PIX transaction:", error)
     
     // Log detalhado do erro para debugging
     if (error instanceof Error) {
@@ -201,7 +227,7 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: error instanceof Error ? error.message : "Erro interno do servidor",
-        provider: 'payevo',
+        provider: 'unipay',
         timestamp: new Date().toISOString()
       },
       { status: 500 }
