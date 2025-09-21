@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { pixRouter } from "@/lib/pix-router"
+
+const UNIPAY_PUBLIC_KEY = "pk_b43b6992da8621f3940d675ed1a5f954091fb37e"
+const UNIPAY_SECRET_KEY = "sk_a0aab6155b590896932e3c92f49df02c59108c74"
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,45 +29,198 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Determinar qual API usar baseado na distribuição 3:1
-    const selectedProvider = pixRouter.recordTransaction()
+    console.log("[UNIPAY] Creating PIX payment:", { cpf, name, phone, amount })
+
+    // Limpar CPF (remover formatação)
+    const cpfLimpo = cpf.replace(/\D/g, '')
     
-    // Log discreto apenas para debugging interno
-    console.log(`[PIX] Provider: ${selectedProvider}`)
+    // Limpar telefone (remover formatação)
+    const phoneLimpo = phone.replace(/\D/g, '')
+    
+    // Usar o valor fornecido ou o padrão
+    const finalAmount = amount || 263.23
+    const amountInCents = Math.round(finalAmount * 100)
 
-    // Fazer a requisição para a API selecionada
-    const apiUrl = selectedProvider === 'unipay' 
-      ? `${request.nextUrl.origin}/api/unipay-pix`
-      : `${request.nextUrl.origin}/api/freepay-pix`
+    const url = 'https://api.unipaybr.com/api'
+    
+    // UNIPAY usa Basic Auth com SECRET_KEY:x
+    const auth = 'Basic ' + Buffer.from(UNIPAY_SECRET_KEY + ':x').toString('base64')
+    
+    console.log("[UNIPAY] Auth header:", auth.substring(0, 30) + "...")
 
-    const apiResponse = await fetch(apiUrl, {
+    const payload = {
+      amount: amountInCents,
+      currency: "BRL",
+      paymentMethod: "PIX",
+      customer: {
+        name: name,
+        email: `${cpfLimpo}@temp.com`,
+        document: {
+          number: cpf,
+          type: "CPF"
+        },
+        phone: phone,
+        address: {
+          street: "Rua Exemplo",
+          streetNumber: "123",
+          complement: "Apto 1",
+          zipCode: "12345678",
+          neighborhood: "Centro",
+          city: "São Paulo",
+          state: "SP",
+          country: "BR"
+        }
+      },
+      shipping: {
+        fee: 0,
+        address: {
+          street: "Rua Exemplo",
+          streetNumber: "123",
+          complement: "Apto 1",
+          zipCode: "12345678",
+          neighborhood: "Centro",
+          city: "São Paulo",
+          state: "SP",
+          country: "BR"
+        }
+      },
+      items: [{
+        title: "Produto005",
+        unitPrice: amountInCents,
+        quantity: 1,
+        tangible: true,
+        externalRef: `PRODUTO005_${cpfLimpo}`
+      }],
+      pix: {
+        expiresInDays: 1
+      },
+      metadata: JSON.stringify({
+        cpf: cpf,
+        phone: phone,
+        source: 'Organico-x1',
+        timestamp: new Date().toISOString()
+      }),
+      traceable: true
+    }
+
+    console.log("[UNIPAY] Payload:", payload)
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
+        'Authorization': auth,
         'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
-      body: JSON.stringify({ amount, cpf, name, phone }),
+      body: JSON.stringify(payload),
     })
 
-    const apiResult = await apiResponse.json()
+    const responseText = await response.text()
+    console.log("[UNIPAY] Response status:", response.status)
+    console.log("[UNIPAY] Response body:", responseText)
 
-    // Log discreto apenas para debugging interno
-    console.log(`[PIX] ${selectedProvider} response:`, apiResult.success ? 'OK' : 'ERROR')
+    if (!response.ok) {
+      console.log("[UNIPAY] Error - Status:", response.status, "Response:", responseText)
+      
+      let errorMessage = `UNIPAY error: ${response.status}`
+      try {
+        const errorData = JSON.parse(responseText)
+        errorMessage = errorData.message || errorData.error || errorMessage
+      } catch (e) {
+        errorMessage = responseText || errorMessage
+      }
+      
+      return NextResponse.json({
+        success: false,
+        error: errorMessage,
+        provider: 'unipay'
+      }, { status: response.status })
+    }
 
-    return NextResponse.json(apiResult, { status: apiResponse.status })
+    let transactionData
+    try {
+      transactionData = JSON.parse(responseText)
+      console.log("[UNIPAY] PIX transaction created successfully:", transactionData)
+    } catch (parseError) {
+      console.log("[UNIPAY] Failed to parse response as JSON:", parseError)
+      return NextResponse.json({
+        success: false,
+        error: "Resposta inválida da UNIPAY",
+        provider: 'unipay'
+      }, { status: 500 })
+    }
+
+    // Extrair dados PIX da resposta UNIPAY
+    const pixData = transactionData.pix
+    const pixCode = pixData?.qrcode || transactionData.qrcode
+    const transactionId = transactionData.id
+    const expirationDate = pixData?.expirationDate
+
+    console.log("[UNIPAY] PIX data extracted:", { pixData, pixCode, transactionId, expirationDate })
+
+    if (!pixCode) {
+      console.log("[UNIPAY] No PIX QR code found in response:", transactionData)
+      return NextResponse.json({
+        success: false,
+        error: "Código PIX não foi gerado pela UNIPAY",
+        provider: 'unipay'
+      }, { status: 500 })
+    }
+
+    // Calcular tempo de expiração (24 horas se não especificado)
+    const expiresAt = expirationDate || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+
+    // Gerar QR Code usando API online
+    let qrCodeImage = null
+    try {
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(pixCode)}`
+      qrCodeImage = qrApiUrl
+      console.log("[UNIPAY] QR Code URL generated successfully:", qrApiUrl)
+    } catch (qrError) {
+      console.log("[UNIPAY] Error generating QR Code URL:", qrError)
+    }
+
+    return NextResponse.json({
+      success: true,
+      pixCode: pixCode,
+      qrCodeImage: qrCodeImage,
+      amount: finalAmount,
+      transactionId: transactionId,
+      expiresAt: expiresAt,
+      provider: 'unipay',
+      status: transactionData.status || 'waiting_payment',
+      customer: {
+        name: transactionData.customer?.name || name,
+        email: transactionData.customer?.email || `${cpfLimpo}@temp.com`,
+        phone: transactionData.customer?.phone || phone
+      },
+      metadata: {
+        cpf: cpf,
+        phone: phone,
+        source: 'Organico-x1',
+        timestamp: new Date().toISOString()
+      }
+    })
 
   } catch (error) {
-    console.error("[PIX Router] Error in main endpoint:", error)
+    console.error("[UNIPAY] Error creating PIX transaction:", error)
+    
+    if (error instanceof Error) {
+      console.error("[UNIPAY] Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      })
+    }
     
     return NextResponse.json(
       {
         success: false,
         error: error instanceof Error ? error.message : "Erro interno do servidor",
-        provider: 'router',
+        provider: 'unipay',
         timestamp: new Date().toISOString()
       },
       { status: 500 }
     )
   }
 }
-
-// Endpoint GET removido para não expor informações de roteamento

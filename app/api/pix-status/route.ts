@@ -1,8 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 
+const UNIPAY_SECRET_KEY = "sk_a0aab6155b590896932e3c92f49df02c59108c74"
+
 export async function POST(request: NextRequest) {
   try {
-    const { transactionId, provider } = await request.json()
+    const { transactionId } = await request.json()
     
     if (!transactionId) {
       return NextResponse.json({ 
@@ -11,29 +13,12 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    if (!provider || !['unipay', 'freepay'].includes(provider)) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Provider deve ser 'unipay' ou 'freepay'" 
-      }, { status: 400 })
-    }
+    console.log(`[UNIPAY] Checking status for transaction:`, transactionId)
 
-    console.log(`[PIX Status] Checking status for ${provider} transaction:`, transactionId)
+    const url = `https://api.unipaybr.com/api/transactions/${transactionId}`
+    const auth = 'Basic ' + Buffer.from(UNIPAY_SECRET_KEY + ':x').toString('base64')
 
-    let apiUrl: string
-    let auth: string
-
-    if (provider === 'unipay') {
-      const UNIPAY_SECRET_KEY = "sk_a0aab6155b590896932e3c92f49df02c59108c74"
-      apiUrl = `https://api.unipaybr.com/api/transactions/${transactionId}`
-      auth = 'Basic ' + Buffer.from(UNIPAY_SECRET_KEY + ':x').toString('base64')
-    } else {
-      const FREEPAY_SECRET_KEY = "sk_live_C4C97UanuShcerwwfBIWYnTdqthmTrh2s5hYXBntPdb8q3bL"
-      apiUrl = `https://api.freepaybr.com/functions/v1/transactions/${transactionId}`
-      auth = 'Basic ' + Buffer.from(FREEPAY_SECRET_KEY + ':x').toString('base64')
-    }
-
-    const response = await fetch(apiUrl, {
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Authorization': auth,
@@ -42,13 +27,14 @@ export async function POST(request: NextRequest) {
     })
 
     const responseText = await response.text()
-    console.log(`[PIX Status] ${provider.toUpperCase()} response:`, response.status, responseText)
+    console.log(`[UNIPAY] Response status:`, response.status)
+    console.log(`[UNIPAY] Response body:`, responseText)
 
     if (!response.ok) {
       return NextResponse.json({
         success: false,
-        error: `Erro ao consultar status na ${provider.toUpperCase()}: ${response.status}`,
-        provider
+        error: `Erro ao consultar status na UNIPAY: ${response.status}`,
+        provider: 'unipay'
       }, { status: response.status })
     }
 
@@ -59,14 +45,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         error: "Resposta inválida da API",
-        provider
+        provider: 'unipay'
       }, { status: 500 })
     }
 
     return NextResponse.json({
       success: true,
       transactionId,
-      provider,
+      provider: 'unipay',
       status: transactionData.status,
       amount: transactionData.amount,
       paidAt: transactionData.paidAt,
@@ -77,7 +63,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("[PIX Status] Error checking transaction status:", error)
+    console.error("[UNIPAY] Error checking transaction status:", error)
     
     return NextResponse.json(
       {
