@@ -322,6 +322,6 @@ export function isCanceledStatus(status: string): boolean {
 
 // Default client instance
 export const freepay = new FreePayClient({
-  secretKey: process.env.FREEPAY_SECRET_KEY || 'sk_live_m3uStaWdyxbBEazrhZp9vzlQMd26rIPv9XUttVnhWXu7EOrm',
-  companyId: process.env.FREEPAY_COMPANY_ID || 'f47a370a-6bda-4bb7-8b1b-f020790c7d7e'
+  secretKey: process.env.FREEPAY_SECRET_KEY || 'sk_live_kz884CBiwU0Pf8k1FuxQ0WJdVHRg6pzKoxMlCfTAQqgd69Fj',
+  companyId: process.env.FREEPAY_COMPANY_ID || '7aa4af10-e86a-4c7d-929e-eaa417039730'
 })
