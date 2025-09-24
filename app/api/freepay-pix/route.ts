@@ -82,10 +82,11 @@ export async function POST(request: NextRequest) {
         source: 'FreePay-Integration',
         timestamp: new Date().toISOString()
       }),
-      postbackUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://your-domain.com'}/api/freepay-webhook`
+      postbackUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://e34asd.netlify.app'}/api/freepay-webhook`
     }
 
     console.log("[FreePay] Payload:", payload)
+    console.log("[FreePay] Webhook URL:", `${process.env.NEXT_PUBLIC_BASE_URL || 'https://e34asd.netlify.app'}/api/freepay-webhook`)
 
     const response = await fetch(url, {
       method: 'POST',

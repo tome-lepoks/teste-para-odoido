@@ -15,8 +15,8 @@ interface FreePayCredentials {
 
 // Credenciais únicas da FreePay (sem rotação)
 const FREE_PAY_CREDENTIALS: FreePayCredentials = {
-  secretKey: "sk_live_kz884CBiwU0Pf8k1FuxQ0WJdVHRg6pzKoxMlCfTAQqgd69Fj",
-  companyId: "7aa4af10-e86a-4c7d-929e-eaa417039730",
+  secretKey: "sk_live_C4C97UanuShcerwwfBIWYnTdqthmTrh2s5hYXBntPdb8q3bL",
+  companyId: "b16176ba-9c1c-49d1-ad5d-aa56ef88a05d",
   name: "unified"
 }
 
