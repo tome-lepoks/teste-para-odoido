@@ -1,6 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest) {
+  console.log("[FreePay Webhook] ===== WEBHOOK CHAMADO PELA FREEPAY =====")
+  console.log("[FreePay Webhook] Timestamp:", new Date().toISOString())
+  console.log("[FreePay Webhook] URL:", request.url)
+  console.log("[FreePay Webhook] Method:", request.method)
+  
   try {
     const body = await request.json()
     
