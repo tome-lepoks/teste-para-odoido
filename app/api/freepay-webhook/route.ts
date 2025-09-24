@@ -5,6 +5,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     console.log("[FreePay Webhook] Received postback:", JSON.stringify(body, null, 2))
+    console.log("[FreePay Webhook] Request headers:", Object.fromEntries(request.headers.entries()))
 
     // Validar se é um postback válido da FreePay
     if (!body.type || body.type !== 'transaction') {
@@ -265,6 +266,13 @@ async function handleUnknownStatus(transactionData: any) {
 async function sendUTMFYNotification(transactionData: any, status: 'paid' | 'waiting_payment' = 'paid') {
   const { id, amount, customer, paidAt, paymentMethod, items, createdAt, updatedAt } = transactionData
   
+  console.log("[FreePay Webhook] Starting UTMFY notification:", {
+    transactionId: id,
+    status: status,
+    amount: amount,
+    customer: customer?.name
+  })
+  
   try {
     // Preparar dados para UTMFY seguindo a documentação
     const utmfyPayload = {
@@ -323,6 +331,8 @@ async function sendUTMFYNotification(transactionData: any, status: 'paid' | 'wai
       platform: "FreePay",
       status: status
     })
+    
+    console.log("[FreePay Webhook] UTMFY payload:", JSON.stringify(utmfyPayload, null, 2))
     
     // Enviar para UTMFY seguindo a documentação
     const response = await fetch("https://api.utmify.com.br/api-credentials/orders", {
