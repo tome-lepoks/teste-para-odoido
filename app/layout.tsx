@@ -21,12 +21,31 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              window.pixelId = "68d1d4068c6fc3b9fa178a58";
-              var a = document.createElement("script");
-              a.setAttribute("async", "");
-              a.setAttribute("defer", "");
-              a.setAttribute("src", "https://cdn.utmify.com.br/scripts/pixel/pixel.js");
-              document.head.appendChild(a);
+              // Configuração do pixel UTMFY
+              window.pixelId = "68230c0f5eee6a902ed7223a";
+              window.utmifyConfig = {
+                apiToken: "IvzcwicXzvD9wEZvc3A8VCGJlxTfdz9J2gXq",
+                debug: false
+              };
+              
+              // Carregar pixel UTMFY
+              (function() {
+                try {
+                  var script = document.createElement("script");
+                  script.async = true;
+                  script.defer = true;
+                  script.src = "https://cdn.utmify.com.br/scripts/pixel/pixel.js";
+                  script.onload = function() {
+                    console.log("[UTMFY] Pixel carregado com sucesso");
+                  };
+                  script.onerror = function() {
+                    console.error("[UTMFY] Erro ao carregar pixel");
+                  };
+                  document.head.appendChild(script);
+                } catch (error) {
+                  console.error("[UTMFY] Erro na configuração do pixel:", error);
+                }
+              })();
             `,
           }}
         />
