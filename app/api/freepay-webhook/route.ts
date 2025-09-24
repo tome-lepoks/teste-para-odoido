@@ -5,7 +5,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     console.log("[FreePay Webhook] Received postback:", JSON.stringify(body, null, 2))
-    console.log("[FreePay Webhook] Request headers:", Object.fromEntries(request.headers.entries()))
 
     // Validar se é um postback válido da FreePay
     if (!body.type || body.type !== 'transaction') {
@@ -131,16 +130,16 @@ async function handlePaidTransaction(transactionData: any) {
   
   // Exemplo de integração com sistema externo
   try {
-    // 1. Enviar notificação para UTMFY (venda aprovada)
+    // Enviar notificação para UTMFY (venda aprovada)
     await sendUTMFYNotification(transactionData, 'paid')
     
-    // 2. Simular envio de email de confirmação
+    // Simular envio de email de confirmação
     console.log("[FreePay Webhook] Sending confirmation email to:", transactionData.customer?.email)
     
-    // 3. Simular atualização de banco de dados
+    // Simular atualização de banco de dados
     console.log("[FreePay Webhook] Updating database for transaction:", transactionData.id)
     
-    // 4. Simular liberação de produto
+    // Simular liberação de produto
     console.log("[FreePay Webhook] Releasing product for customer:", transactionData.customer?.name)
     
   } catch (error) {
@@ -224,7 +223,6 @@ async function handleWaitingTransaction(transactionData: any) {
   // - Atualizar status no sistema
   // - Enviar lembretes se necessário
   // - Monitorar tempo de expiração
-  // - Enviar notificação para UTMFY (venda pendente)
   
   try {
     // Enviar notificação para UTMFY (venda pendente)
@@ -262,23 +260,31 @@ async function handleUnknownStatus(transactionData: any) {
 
 /**
  * Envia notificação de venda para a UTMFY seguindo a documentação oficial
+ * Apenas para vendas pendentes (waiting_payment) e aprovadas (paid) via PIX
  */
-async function sendUTMFYNotification(transactionData: any, status: 'paid' | 'waiting_payment' = 'paid') {
+async function sendUTMFYNotification(transactionData: any, status: 'waiting_payment' | 'paid') {
   const { id, amount, customer, paidAt, paymentMethod, items, createdAt, updatedAt } = transactionData
   
   console.log("[FreePay Webhook] Starting UTMFY notification:", {
     transactionId: id,
     status: status,
     amount: amount,
-    customer: customer?.name
+    customer: customer?.name,
+    paymentMethod: paymentMethod
   })
   
+  // Verificar se é PIX (apenas PIX é enviado para UTMFY)
+  if (paymentMethod !== 'PIX') {
+    console.log("[FreePay Webhook] Skipping UTMFY notification - not PIX payment:", paymentMethod)
+    return
+  }
+  
   try {
-    // Preparar dados para UTMFY seguindo a documentação
+    // Preparar dados para UTMFY seguindo a documentação oficial
     const utmfyPayload = {
       orderId: id,
       platform: "FreePay",
-      paymentMethod: mapPaymentMethod(paymentMethod),
+      paymentMethod: "pix", // Sempre PIX conforme especificado
       status: status,
       createdAt: formatDateForUTMFY(createdAt),
       approvedDate: status === 'paid' ? formatDateForUTMFY(paidAt) : null,
@@ -329,12 +335,13 @@ async function sendUTMFYNotification(transactionData: any, status: 'paid' | 'wai
       amount: amount,
       customer: customer?.name,
       platform: "FreePay",
-      status: status
+      status: status,
+      paymentMethod: "pix"
     })
     
     console.log("[FreePay Webhook] UTMFY payload:", JSON.stringify(utmfyPayload, null, 2))
     
-    // Enviar para UTMFY seguindo a documentação
+    // Enviar para UTMFY seguindo a documentação oficial
     const response = await fetch("https://api.utmify.com.br/api-credentials/orders", {
       method: "POST",
       headers: {
@@ -365,24 +372,11 @@ async function sendUTMFYNotification(transactionData: any, status: 'paid' | 'wai
       transactionData: {
         id,
         amount,
-        customer: customer?.name
+        customer: customer?.name,
+        paymentMethod: paymentMethod
       }
     })
   }
-}
-
-/**
- * Mapeia o método de pagamento do FreePay para o formato da UTMFY
- */
-function mapPaymentMethod(freepayMethod: string): string {
-  const methodMap: { [key: string]: string } = {
-    'PIX': 'pix',
-    'CARD': 'credit_card',
-    'BOLETO': 'boleto',
-    'PAYPAL': 'paypal'
-  }
-  
-  return methodMap[freepayMethod] || 'pix'
 }
 
 /**
