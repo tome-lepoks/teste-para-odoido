@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       const response = await fetch("https://api.cpfhub.io/api/cpf", {
         method: "POST",
         headers: {
-          "x-api-key": "70bd0aed73362d36b0856de50efdadf2eb1fd65bae8779e6307fa573a9f3f1a9",
+          "x-api-key": "d15f8b964fbd181704f31e91e7f513fcdb7ad6cc585f0c061ae54266e258b6a8",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({

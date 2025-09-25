@@ -135,9 +135,6 @@ async function handlePaidTransaction(transactionData: any) {
   
   // Exemplo de integração com sistema externo
   try {
-    // Enviar notificação para UTMFY (venda aprovada)
-    await sendUTMFYNotification(transactionData, 'paid')
-    
     // Simular envio de email de confirmação
     console.log("[FreePay Webhook] Sending confirmation email to:", transactionData.customer?.email)
     
@@ -230,9 +227,6 @@ async function handleWaitingTransaction(transactionData: any) {
   // - Monitorar tempo de expiração
   
   try {
-    // Enviar notificação para UTMFY (venda pendente)
-    await sendUTMFYNotification(transactionData, 'waiting_payment')
-    
     console.log("[FreePay Webhook] Transaction is waiting for payment:", transactionData.id)
     
   } catch (error) {
@@ -259,144 +253,4 @@ async function handleUnknownStatus(transactionData: any) {
   } catch (error) {
     console.error("[FreePay Webhook] Error in unknown status processing:", error)
   }
-}
-
-// ===== INTEGRAÇÃO COM UTMFY =====
-
-/**
- * Envia notificação de venda para a UTMFY seguindo a documentação oficial
- * Apenas para vendas pendentes (waiting_payment) e aprovadas (paid) via PIX
- */
-async function sendUTMFYNotification(transactionData: any, status: 'waiting_payment' | 'paid') {
-  const { id, amount, customer, paidAt, paymentMethod, items, createdAt, updatedAt } = transactionData
-  
-  console.log("[FreePay Webhook] Starting UTMFY notification:", {
-    transactionId: id,
-    status: status,
-    amount: amount,
-    customer: customer?.name,
-    paymentMethod: paymentMethod
-  })
-  
-  // Verificar se é PIX (apenas PIX é enviado para UTMFY)
-  if (paymentMethod !== 'PIX') {
-    console.log("[FreePay Webhook] Skipping UTMFY notification - not PIX payment:", paymentMethod)
-    return
-  }
-  
-  try {
-    // Preparar dados para UTMFY seguindo a documentação oficial
-    const utmfyPayload = {
-      orderId: id,
-      platform: "FreePay",
-      paymentMethod: "pix", // Sempre PIX conforme especificado
-      status: status,
-      createdAt: formatDateForUTMFY(createdAt),
-      approvedDate: status === 'paid' ? formatDateForUTMFY(paidAt) : null,
-      refundedAt: null,
-      customer: {
-        name: customer?.name || "Cliente",
-        email: customer?.email || "",
-        phone: customer?.phone || null,
-        document: null, // CPF não disponível no FreePay
-        country: "BR",
-        ip: null
-      },
-      products: items?.map((item: any) => ({
-        id: item.externalRef || id,
-        name: item.title || "Produto FreePay",
-        planId: null,
-        planName: null,
-        quantity: item.quantity || 1,
-        priceInCents: item.unitPrice || amount
-      })) || [{
-        id: id,
-        name: "Produto FreePay",
-        planId: null,
-        planName: null,
-        quantity: 1,
-        priceInCents: amount
-      }],
-      trackingParameters: {
-        src: null,
-        sck: null,
-        utm_source: process.env.UTM_SOURCE || null,
-        utm_campaign: process.env.UTM_CAMPAIGN || null,
-        utm_medium: process.env.UTM_MEDIUM || null,
-        utm_content: process.env.UTM_CONTENT || null,
-        utm_term: process.env.UTM_TERM || null
-      },
-      commission: {
-        totalPriceInCents: amount,
-        gatewayFeeInCents: Math.round(amount * 0.05), // Estimativa de 5% de taxa
-        userCommissionInCents: Math.round(amount * 0.95), // 95% para o usuário
-        currency: "BRL"
-      },
-      isTest: false
-    }
-    
-    console.log("[FreePay Webhook] Sending UTMFY notification:", {
-      orderId: id,
-      amount: amount,
-      customer: customer?.name,
-      platform: "FreePay",
-      status: status,
-      paymentMethod: "pix"
-    })
-    
-    console.log("[FreePay Webhook] UTMFY payload:", JSON.stringify(utmfyPayload, null, 2))
-    
-    // Enviar para UTMFY seguindo a documentação oficial
-    const response = await fetch("https://api.utmify.com.br/api-credentials/orders", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-token": "IvzcwicXzvD9wEZvc3A8VCGJlxTfdz9J2gXq"
-      },
-      body: JSON.stringify(utmfyPayload)
-    })
-    
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`UTMFY API error: ${response.status} ${response.statusText} - ${errorText}`)
-    }
-    
-    const responseData = await response.text()
-    console.log("[FreePay Webhook] UTMFY notification sent successfully:", {
-      orderId: id,
-      status: response.status,
-      response: responseData
-    })
-    
-  } catch (error) {
-    console.error("[FreePay Webhook] Error sending UTMFY notification:", error)
-    
-    // Log do erro mas não falha o webhook principal
-    console.error("[FreePay Webhook] UTMFY notification failed for transaction:", id, {
-      error: error instanceof Error ? error.message : String(error),
-      transactionData: {
-        id,
-        amount,
-        customer: customer?.name,
-        paymentMethod: paymentMethod
-      }
-    })
-  }
-}
-
-/**
- * Formata data para o formato esperado pela UTMFY (YYYY-MM-DD HH:MM:SS UTC)
- */
-function formatDateForUTMFY(dateString: string): string | null {
-  if (!dateString) return null
-  
-  const date = new Date(dateString)
-  const year = date.getUTCFullYear()
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-  const day = String(date.getUTCDate()).padStart(2, '0')
-  const hours = String(date.getUTCHours()).padStart(2, '0')
-  const minutes = String(date.getUTCMinutes()).padStart(2, '0')
-  const seconds = String(date.getUTCSeconds()).padStart(2, '0')
-  
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
