@@ -18,6 +18,18 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.pixelId = "68230c0f5eee6a902ed7223a";
+              var a = document.createElement("script");
+              a.setAttribute("async", "");
+              a.setAttribute("defer", "");
+              a.setAttribute("src", "https://cdn.utmify.com.br/scripts/pixel/pixel.js");
+              document.head.appendChild(a);
+            `,
+          }}
+        />
       </head>
       <body className={`${GeistSans.variable} ${GeistMono.variable}`}>
         {children}
