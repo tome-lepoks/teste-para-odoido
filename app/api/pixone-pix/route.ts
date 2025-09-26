@@ -121,10 +121,13 @@ export async function POST(request: NextRequest) {
       })
 
       // Converter resposta para formato compatível com FreePay
+      // A Pix One retorna o código PIX no campo qrcode
+      const pixCode = pixInfo.qrcode || ""
+      
       const pixData = {
         success: true,
-        pixCode: pixInfo.qrcodeText || "",
-        qrCodeImage: pixInfo.qrcode || "",
+        pixCode: pixCode, // Código PIX para copiar
+        qrCodeImage: pixCode, // Mesmo código para exibição
         amount: amount,
         transactionId: result.data.secureId || result.data.id,
         expiresAt: pixInfo.expirationDate,
