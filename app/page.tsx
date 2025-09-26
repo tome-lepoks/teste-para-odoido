@@ -208,8 +208,11 @@ export default function Home() {
                   }
                   console.log("[v0] Transaction ID:", pixResult.transactionId)
                   console.log("[v0] PIX Code:", pixResult.pixCode)
+                  console.log("[v0] PIX Code Length:", pixResult.pixCode?.length || 0)
                   console.log("[v0] QR Code Image:", pixResult.qrCodeImage)
+                  console.log("[v0] QR Code Image Length:", pixResult.qrCodeImage?.length || 0)
                   console.log("[v0] Amount:", pixResult.amount)
+                  console.log("[v0] Full PIX Result:", JSON.stringify(pixResult, null, 2))
                   
                 } else {
                   alert("Erro ao gerar PIX. Tente novamente.")
@@ -483,21 +486,13 @@ export default function Home() {
 
               <div className="flex flex-col items-center mb-6">
                 <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
-                  {pixData?.qrCodeImage ? (
-                    <img
-                      src={pixData.qrCodeImage}
-                      alt="QR Code PIX"
-                      className="w-48 h-48"
-                      onError={(e) => {
-                        console.log("[v0] QR Code image failed to load, using fallback")
-                        e.currentTarget.src = `/placeholder.svg?height=200&width=200&query=QR Code PIX`
-                      }}
-                    />
-                  ) : (
-                    <div className="w-48 h-48 bg-gray-100 flex items-center justify-center rounded">
-                      <span className="text-gray-500 text-sm">QR Code não disponível</span>
+                  <div className="w-48 h-48 bg-gray-100 flex items-center justify-center rounded-lg">
+                    <div className="text-center text-gray-500">
+                      <div className="text-4xl mb-2">📱</div>
+                      <div className="text-sm">QR Code</div>
+                      <div className="text-xs">Use o código PIX abaixo</div>
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 <div className="w-full max-w-md">

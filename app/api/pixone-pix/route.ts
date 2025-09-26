@@ -97,24 +97,44 @@ export async function POST(request: NextRequest) {
     })
 
     const result = await response.json()
-    console.log("[Pix One] Response:", result)
+    console.log("[Pix One] Response status:", response.status)
+    console.log("[Pix One] Response headers:", Object.fromEntries(response.headers.entries()))
+    console.log("[Pix One] Response body:", JSON.stringify(result, null, 2))
 
     if (response.ok && result.success) {
+      console.log("[Pix One] Full response data:", JSON.stringify(result, null, 2))
+      
+      // Verificar se os dados do PIX existem
+      if (!result.data || !result.data.pix) {
+        console.error("[Pix One] PIX data not found in response:", result)
+        return NextResponse.json({
+          success: false,
+          error: "Dados do PIX não encontrados na resposta"
+        }, { status: 500 })
+      }
+
+      const pixInfo = result.data.pix
+      console.log("[Pix One] PIX info:", {
+        qrcodeText: pixInfo.qrcodeText ? "Present" : "Missing",
+        qrcode: pixInfo.qrcode ? "Present" : "Missing",
+        expirationDate: pixInfo.expirationDate
+      })
+
       // Converter resposta para formato compatível com FreePay
       const pixData = {
         success: true,
-        pixCode: result.data.pix.qrcodeText,
-        qrCodeImage: result.data.pix.qrcode,
+        pixCode: pixInfo.qrcodeText || "",
+        qrCodeImage: pixInfo.qrcode || "",
         amount: amount,
-        transactionId: result.data.secureId,
-        expiresAt: result.data.pix.expirationDate,
+        transactionId: result.data.secureId || result.data.id,
+        expiresAt: pixInfo.expirationDate,
         provider: "pixone",
         status: "waiting_payment",
         customer: {
-          name: result.data.customer.name,
-          email: result.data.customer.email,
-          phone: result.data.customer.phone,
-          document: result.data.customer.document.number
+          name: result.data.customer?.name || name,
+          email: result.data.customer?.email || email || "cliente@pixone.com",
+          phone: result.data.customer?.phone || phone,
+          document: result.data.customer?.document?.number || cpf
         },
         metadata: {
           externalId: result.data.externalId,
@@ -123,6 +143,13 @@ export async function POST(request: NextRequest) {
           createdAt: result.data.createdAt
         }
       }
+
+      console.log("[Pix One] Converted PIX data:", {
+        success: pixData.success,
+        pixCode: pixData.pixCode ? `Length: ${pixData.pixCode.length}` : "Missing",
+        qrCodeImage: pixData.qrCodeImage ? `Length: ${pixData.qrCodeImage.length}` : "Missing",
+        transactionId: pixData.transactionId
+      })
 
       return NextResponse.json(pixData)
     } else {
