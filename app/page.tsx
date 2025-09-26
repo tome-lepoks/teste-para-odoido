@@ -487,6 +487,13 @@ export default function Home() {
                       <Copy className="h-4 w-4" />
                     </button>
                   </div>
+                  <button
+                    onClick={copyPixCode}
+                    className="w-full mt-3 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center space-x-2"
+                  >
+                    <Copy className="h-4 w-4" />
+                    <span>Copiar PIX</span>
+                  </button>
                 </div>
               </div>
 
@@ -541,13 +548,6 @@ export default function Home() {
                 >
                   <RefreshCw className="h-4 w-4" />
                   <span>Verificar</span>
-                </button>
-                <button
-                  onClick={copyPixCode}
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center space-x-2"
-                >
-                  <Copy className="h-4 w-4" />
-                  <span>Copiar PIX</span>
                 </button>
               </div>
 
