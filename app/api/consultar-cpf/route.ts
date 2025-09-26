@@ -68,14 +68,19 @@ export async function POST(request: NextRequest) {
 
         const githubApiUrl = `https://api-receita-cpf.herokuapp.com/cpf/${cpfLimpo}/?format=json`
 
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000)
+        
         const response = await fetch(githubApiUrl, {
           method: "GET",
           headers: {
             Accept: "application/json",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
           },
-          timeout: 10000,
+          signal: controller.signal,
         })
+        
+        clearTimeout(timeoutId)
 
         if (response.ok) {
           const data = await response.json()
