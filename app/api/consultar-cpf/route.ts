@@ -20,48 +20,57 @@ export async function POST(request: NextRequest) {
     const cpfLimpo = cpf.replace(/[.-]/g, "")
 
     try {
-      console.log("[v0] Tentando API CPFHub.io para CPF:", cpfLimpo, "Data:", birthDate, "Telefone:", phone)
+      console.log("[v0] Tentando API Hub do Desenvolvedor para CPF:", cpfLimpo, "Data:", birthDate, "Telefone:", phone)
 
-      const response = await fetch("https://api.cpfhub.io/api/cpf", {
-        method: "POST",
+      // Converter data de DD/MM/YYYY para DD/MM/YYYY (já está no formato correto)
+      const dataFormatada = birthDate.includes('/') ? birthDate : 
+        birthDate.split('-').reverse().join('/')
+
+      const apiUrl = `https://ws.hubdodesenvolvedor.com.br/v2/cpf/?cpf=${cpfLimpo}&data=${dataFormatada}&token=186033405cdSWwPYvDt335877672`
+      
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 600000) // 10 minutos
+
+      const response = await fetch(apiUrl, {
+        method: "GET",
         headers: {
-          "x-api-key": "d15f8b964fbd181704f31e91e7f513fcdb7ad6cc585f0c061ae54266e258b6a8",
-          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         },
-        body: JSON.stringify({
-          cpf: cpfLimpo,
-          birthDate: birthDate,
-        }),
+        signal: controller.signal,
       })
+
+      clearTimeout(timeoutId)
 
       if (response.ok) {
         const result = await response.json()
-        console.log("[v0] Resposta da API CPFHub.io:", result)
+        console.log("[v0] Resposta da API Hub do Desenvolvedor:", result)
 
-        if (result.success && result.data) {
-          const data = result.data
+        if (result.status && result.return === "OK" && result.result) {
+          const data = result.result
 
           return NextResponse.json({
             success: true,
             data: {
               cpf: cpfLimpo,
-              nome: data.name || "",
-              nascimento: data.birthDate || birthDate,
-              nomeMae: "", // CPFHub não retorna nome da mãe
-              situacao: data.status === "Rejeitado" ? "irregular" : "regular",
-              status: data.status,
-              situation: data.situation,
-              registrationDate: data.registrationDate,
-              validationUrl: data.validationUrl,
+              nome: data.nome_da_pf || "",
+              nascimento: data.data_nascimento || birthDate,
+              nomeMae: "", // Hub do Desenvolvedor não retorna nome da mãe
+              situacao: data.situacao_cadastral?.toLowerCase() === "regular" ? "regular" : "irregular",
+              status: data.situacao_cadastral,
+              situation: data.situacao_cadastral,
+              registrationDate: data.data_inscricao,
+              validationUrl: data.comprovante_emitido,
             },
-            source: "CPFHub.io API",
+            source: "Hub do Desenvolvedor API",
+            consumed: result.consumed,
           })
         }
       }
 
-      throw new Error("CPFHub.io não encontrou dados válidos")
-    } catch (cpfhubError) {
-      console.log("[v0] API CPFHub.io falhou, tentando API GitHub:", cpfhubError)
+      throw new Error("Hub do Desenvolvedor não encontrou dados válidos")
+    } catch (hubError) {
+      console.log("[v0] API Hub do Desenvolvedor falhou, tentando API GitHub:", hubError)
 
       try {
         console.log("[v0] Tentando API gratuita do GitHub para CPF:", cpfLimpo, "Telefone:", phone)
