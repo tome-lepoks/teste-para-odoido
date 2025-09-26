@@ -486,7 +486,22 @@ export default function Home() {
 
               <div className="flex flex-col items-center mb-6">
                 <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
-                  <div className="w-48 h-48 bg-gray-100 flex items-center justify-center rounded-lg">
+                  {pixData?.pixCode ? (
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pixData.pixCode)}`}
+                      alt="QR Code PIX"
+                      className="w-48 h-48 rounded-lg"
+                      onError={(e) => {
+                        console.log("[v0] QR Code image failed to load, using fallback")
+                        e.currentTarget.style.display = 'none'
+                        const nextElement = e.currentTarget.nextElementSibling as HTMLElement
+                        if (nextElement) {
+                          nextElement.style.display = 'flex'
+                        }
+                      }}
+                    />
+                  ) : null}
+                  <div className="w-48 h-48 bg-gray-100 flex items-center justify-center rounded-lg" style={{ display: pixData?.pixCode ? 'none' : 'flex' }}>
                     <div className="text-center text-gray-500">
                       <div className="text-4xl mb-2">📱</div>
                       <div className="text-sm">QR Code</div>
