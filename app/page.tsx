@@ -20,6 +20,13 @@ import {
 } from "lucide-react"
 import { useState, useEffect } from "react"
 
+// Declaração de tipos para window.trackConversion
+declare global {
+  interface Window {
+    trackConversion?: (eventName: string, userData: any) => Promise<string | null>
+  }
+}
+
 type AppState =
   | "login"
   | "loading"
@@ -177,6 +184,28 @@ export default function Home() {
                   
                   // Log do QR code gerado
                   console.log("[v0] PIX transaction created successfully:")
+                  
+                  // Tracking de conversão UTMFY
+                  if (window.trackConversion) {
+                    try {
+                      const trackingData = {
+                        email: '', // Email não capturado no formulário atual
+                        phone: phone || '',
+                        firstName: userData?.name?.split(' ')[0] || '',
+                        lastName: userData?.name?.split(' ').slice(1).join(' ') || '',
+                        city: 'São Paulo', // Pode ser capturado do formulário
+                        state: 'SP',
+                        zip: '00000-000', // Pode ser capturado do formulário
+                        country: 'BR',
+                        externalId: pixResult.transactionId || cpf
+                      };
+                      
+                      await window.trackConversion('Lead', trackingData);
+                      console.log('[UTMFY] Evento Lead enviado com sucesso');
+                    } catch (error) {
+                      console.error('[UTMFY] Erro ao enviar evento Lead:', error);
+                    }
+                  }
                   console.log("[v0] Transaction ID:", pixResult.transactionId)
                   console.log("[v0] PIX Code:", pixResult.pixCode)
                   console.log("[v0] QR Code Image:", pixResult.qrCodeImage)
@@ -531,6 +560,28 @@ export default function Home() {
                         if (result.success) {
                           if (result.status === 'paid') {
                             alert("✅ Pagamento confirmado! Sua regularização foi processada com sucesso.")
+                            
+                            // Tracking de conversão UTMFY - Purchase
+                            if (window.trackConversion) {
+                              try {
+                                const trackingData = {
+                                  email: '', // Email não capturado no formulário atual
+                                  phone: phone || '',
+                                  firstName: userData?.name?.split(' ')[0] || '',
+                                  lastName: userData?.name?.split(' ').slice(1).join(' ') || '',
+                                  city: 'São Paulo',
+                                  state: 'SP',
+                                  zip: '00000-000',
+                                  country: 'BR',
+                                  externalId: pixData.transactionId || cpf
+                                };
+                                
+                                await window.trackConversion('Purchase', trackingData);
+                                console.log('[UTMFY] Evento Purchase enviado com sucesso');
+                              } catch (error) {
+                                console.error('[UTMFY] Erro ao enviar evento Purchase:', error);
+                              }
+                            }
                           } else {
                             alert(`Status do pagamento: ${result.status}. Aguarde a confirmação.`)
                           }
