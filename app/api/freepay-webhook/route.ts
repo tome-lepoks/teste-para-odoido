@@ -144,6 +144,9 @@ async function handlePaidTransaction(transactionData: any) {
     // Simular liberação de produto
     console.log("[FreePay Webhook] Releasing product for customer:", transactionData.customer?.name)
     
+    // TRACKING DE CONVERSÃO META PIXEL
+    await sendMetaConversionTracking(transactionData)
+    
   } catch (error) {
     console.error("[FreePay Webhook] Error in paid transaction processing:", error)
   }
@@ -191,6 +194,90 @@ async function handleRefundedTransaction(transactionData: any) {
   } catch (error) {
     console.error("[FreePay Webhook] Error in refunded transaction processing:", error)
   }
+}
+
+// Função para enviar tracking de conversão para o Meta Pixel
+async function sendMetaConversionTracking(transactionData: any) {
+  try {
+    console.log("[FreePay Webhook] Enviando tracking de conversão para Meta Pixel...")
+    
+    // Extrair dados do cliente da transação
+    const customer = transactionData.customer
+    const amount = transactionData.amount / 100 // Converter de centavos para reais
+    
+    // Preparar dados para o tracking
+    const trackingData = {
+      email: customer?.email || '',
+      phone: customer?.phone || '',
+      firstName: customer?.name?.split(' ')[0] || '',
+      lastName: customer?.name?.split(' ').slice(1).join(' ') || '',
+      city: 'São Paulo',
+      state: 'SP',
+      zip: '00000-000',
+      country: 'BR',
+      externalId: transactionData.id
+    }
+    
+    // Gerar event_id único
+    const eventId = `purchase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    
+    // Preparar dados do evento
+    const eventData = {
+      event_name: 'Purchase',
+      event_time: Math.floor(Date.now() / 1000),
+      event_id: eventId,
+      event_source_url: process.env.NEXT_PUBLIC_BASE_URL || 'https://e34asd.netlify.app',
+      action_source: "website",
+      user_data: {
+        em: await hashData(trackingData.email),
+        ph: await hashData(trackingData.phone),
+        fn: await hashData(trackingData.firstName),
+        ln: await hashData(trackingData.lastName),
+        ct: await hashData(trackingData.city),
+        st: await hashData(trackingData.state),
+        zp: await hashData(trackingData.zip),
+        country: await hashData(trackingData.country),
+        external_id: trackingData.externalId
+      },
+      custom_data: {
+        value: amount,
+        currency: 'BRL',
+        content_type: 'product',
+        content_name: 'Regularização DARF'
+      }
+    }
+    
+    console.log("[FreePay Webhook] Evento Purchase preparado:", eventData)
+    
+    // Enviar para UTMFY/Meta Pixel
+    const response = await fetch('https://api.utmify.com.br/api-credentials/events', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-token': 'IvzcwicXzvD9wEZvc3A8VCGJlxTfdz9J2gXq'
+      },
+      body: JSON.stringify(eventData)
+    })
+    
+    if (response.ok) {
+      console.log("[FreePay Webhook] ✅ Evento Purchase enviado com sucesso para Meta Pixel")
+    } else {
+      console.error("[FreePay Webhook] ❌ Erro ao enviar evento Purchase:", response.status)
+    }
+    
+  } catch (error) {
+    console.error("[FreePay Webhook] ❌ Erro no tracking de conversão:", error)
+  }
+}
+
+// Função para hashear dados com SHA-256
+async function hashData(data: string) {
+  if (!data) return ''
+  const encoder = new TextEncoder()
+  const dataBuffer = encoder.encode(data.toLowerCase().trim())
+  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
 async function handleCanceledTransaction(transactionData: any) {
