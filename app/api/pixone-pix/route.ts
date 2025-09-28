@@ -19,12 +19,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    if (!phone) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Telefone é obrigatório" 
-      }, { status: 400 })
-    }
+    // Telefone não é mais obrigatório
 
     console.log("[Pix One] Creating PIX payment:", { cpf, name, phone, amount })
 

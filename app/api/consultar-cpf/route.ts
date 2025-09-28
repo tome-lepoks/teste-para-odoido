@@ -12,9 +12,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Data de nascimento é obrigatória" }, { status: 400 })
     }
 
-    if (!phone) {
-      return NextResponse.json({ success: false, error: "Telefone é obrigatório" }, { status: 400 })
-    }
+    // Telefone não é mais obrigatório
 
     // Remove formatação do CPF (pontos e traços)
     const cpfLimpo = cpf.replace(/[.-]/g, "")

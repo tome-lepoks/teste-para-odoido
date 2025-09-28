@@ -20,12 +20,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    if (!phone) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Telefone é obrigatório" 
-      }, { status: 400 })
-    }
+    // Telefone não é mais obrigatório
 
     console.log("[FreePay] Creating PIX payment:", { cpf, name, phone, amount })
 
@@ -35,8 +30,8 @@ export async function POST(request: NextRequest) {
     // Limpar CPF (remover formatação)
     const cpfLimpo = cpf.replace(/\D/g, '')
     
-    // Limpar telefone (remover formatação)
-    const phoneLimpo = phone.replace(/\D/g, '')
+    // Limpar telefone (remover formatação) - tratar se vazio
+    const phoneLimpo = phone ? phone.replace(/\D/g, '') : ''
     
     // Usar o valor fornecido ou o padrão
     const finalAmount = amount || 248.21
