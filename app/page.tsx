@@ -552,14 +552,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button
-                  onClick={() => setAppState("darf")}
-                  className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center justify-center space-x-2"
-                >
-                  <FileText className="h-4 w-4" />
-                  <span>Gerar DARF</span>
-                </button>
+              <div className="flex justify-center">
                 <button
                   onClick={async () => {
                     if (pixData?.transactionId) {
@@ -605,7 +598,7 @@ export default function Home() {
                       alert("ID da transação não encontrado.")
                     }
                   }}
-                  className="flex-1 px-6 py-3 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 flex items-center justify-center space-x-2"
+                  className="px-8 py-3 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 flex items-center justify-center space-x-2"
                 >
                   <RefreshCw className="h-4 w-4" />
                   <span>Verificar</span>
