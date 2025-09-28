@@ -91,8 +91,10 @@ export default function RootLayout({
                     console.warn('[UTMFY] Erro ao obter dados do servidor:', serverError);
                   }
                   
-                  // Preparar dados do usuário com hash
+                  // Preparar dados do usuário com hash (otimizado para Meta)
                   const hashedUserData = {};
+                  
+                  // Dados obrigatórios para melhor conversão
                   if (userData.email) hashedUserData.em = await hashData(userData.email);
                   if (userData.phone) hashedUserData.ph = await hashData(userData.phone);
                   if (userData.firstName) hashedUserData.fn = await hashData(userData.firstName);
@@ -103,11 +105,18 @@ export default function RootLayout({
                   if (userData.country) hashedUserData.country = await hashData(userData.country);
                   if (userData.externalId) hashedUserData.external_id = userData.externalId;
                   
-                  // Adicionar dados de tracking (priorizar servidor)
+                  // Dados de tracking críticos para conversão
                   hashedUserData.client_user_agent = serverData.client_user_agent || userAgent;
                   hashedUserData.client_ip_address = serverData.client_ip_address;
+                  
+                  // FBC (Facebook Click ID) - CRÍTICO para +100% conversões
                   if (fbc) hashedUserData.fbc = fbc;
+                  
+                  // FBP (Facebook Browser ID) - já implementado
                   if (fbp) hashedUserData.fbp = fbp;
+                  
+                  // Adicionar dados extras para melhor matching
+                  hashedUserData.event_source_url = serverData.event_source_url || eventSourceUrl;
                   
                   // Enviar para UTMFY
                   const eventData = {

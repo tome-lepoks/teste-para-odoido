@@ -111,7 +111,7 @@ async function sendMetaConversionTracking(transactionData: any) {
     const customer = transactionData.customer
     const amount = transactionData.amount / 100 // Converter de centavos para reais
     
-    // Preparar dados para o tracking
+    // Preparar dados para o tracking (otimizado para Meta)
     const trackingData = {
       email: customer?.email || '',
       phone: customer?.phone || '',
